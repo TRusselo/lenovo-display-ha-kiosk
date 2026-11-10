@@ -68,6 +68,9 @@ Step by step, with the one-time USB setup for each system: [Windows](docs/WINDOW
 > neither has converted a real display yet. If you try one, please [open an issue](../../issues) to say how it
 > went, whether it worked or not.
 
+**Discussion and testing:** [XDA thread](https://xdaforums.com/t/lenovo-smart-display-8-home-assistant-kiosk-satellite.4808181/)
+· [Hackaday.io project](https://hackaday.io/project/207337-lenovo-smart-display-8-home-assistant-kiosk-vo)
+
 **2. Python (if you like to see and run the code yourself).** Same tool, run from source with your own Python
 3.10+: [docs/PYTHON.md](docs/PYTHON.md).
 
