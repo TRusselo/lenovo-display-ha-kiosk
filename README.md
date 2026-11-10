@@ -51,30 +51,70 @@ at your own risk.
 - Home Assistant, ideally with a local voice pipeline
 - 20 to 30 minutes; most of it is waiting
 
-## Two ways to run it
+## Quick start
 
-**1. Standalone program (most people).** Nothing else to install.
+You don't need a GitHub account, and you don't need to know any code. You'll type one command.
 
-1. Download the zip for your system from [Releases](../../releases).
-2. Unzip it into a folder.
-3. Open a terminal (Command Prompt on Windows) in that folder.
-4. Run `lhk\lhk setup` on Windows, or `./lhk/lhk setup` on macOS and Linux, and follow the prompts.
+**1. Download the program for your computer.** One click; it's always the newest version.
 
-Step by step, with the one-time USB setup for each system: [Windows](docs/WINDOWS.md) · [macOS](docs/MACOS.md)
-· [Linux](docs/LINUX.md).
+| Your computer | Download |
+|---|---|
+| Windows 10 or 11 | [lhk-windows-x86_64.zip](https://github.com/TRusselo/lenovo-display-ha-kiosk/releases/latest/download/lhk-windows-x86_64.zip) |
+| Mac with an M1 chip or newer | [lhk-macos-arm64.zip](https://github.com/TRusselo/lenovo-display-ha-kiosk/releases/latest/download/lhk-macos-arm64.zip) |
+| Linux PC | [lhk-linux-x86_64.zip](https://github.com/TRusselo/lenovo-display-ha-kiosk/releases/latest/download/lhk-linux-x86_64.zip) |
+
+**2. Unzip it** into a folder of its own. Your downloads and the display's backup will be saved there too.
+
+**3. Open a terminal in that folder.** A terminal is the text window where you type commands:
+- **Windows:** open the folder, click the address bar at the top, type `cmd`, press Enter.
+- **Mac:** open Terminal, type `cd ` (with a space), drag the folder onto the window, press Return.
+- **Linux:** right-click in the folder and choose **Open Terminal Here**.
+
+**4. Type the command** and press Enter:
+- Windows: `lhk\lhk setup`
+- Mac and Linux: `./lhk/lhk setup`
+
+**5. Do what it says.** It tells you each time it needs you: which buttons to hold on the display, what to set up on
+its screen, and when to press Enter. That's it. If it stops for any reason, type the same command again and it
+carries on where it left off.
+
+Each system has a one-time extra step (drivers on Windows, a permission on Mac and Linux). The full guides walk
+you through it: [Windows](docs/WINDOWS.md) · [Mac](docs/MACOS.md) · [Linux](docs/LINUX.md).
 
 > [!NOTE]
-> Tested end to end on **Linux** only. The Windows and macOS programs are built and their tests pass, but
-> neither has converted a real display yet. If you try one, please [open an issue](../../issues) to say how it
-> went, whether it worked or not.
+> Tested end to end on **Linux** only. The Windows and Mac programs are built and their tests pass, but neither
+> has converted a real display yet. If you try one, please say how it went, whether it worked or not.
 
-**Discussion and testing:** [XDA thread](https://xdaforums.com/t/lenovo-smart-display-8-home-assistant-kiosk-satellite.4808181/)
-· [Hackaday.io project](https://hackaday.io/project/207337-lenovo-smart-display-8-home-assistant-kiosk-vo)
+### Words you'll see
 
-**2. Python (if you like to see and run the code yourself).** Same tool, run from source with your own Python
-3.10+: [docs/PYTHON.md](docs/PYTHON.md).
+- **Terminal:** the text window where you type the command. Command Prompt on Windows, Terminal on a Mac.
+- **EDL mode and fastboot mode:** special ways the display can start, for backing up and installing. You get to
+  them by holding volume buttons while plugging in the power; the tool tells you which ones. **The screen stays
+  black in both**, which is normal. If you see the Lenovo logo, it started normally instead: unplug and try again.
+- **Verified boot:** the display's lock that only allows Google's software. The tool unlocks it to install the new
+  system, and `lhk restore` locks it again if you ever go back.
+- **The backup:** a copy of the display's original software, saved as one zip file. It's the only way back, so
+  keep it safe.
 
-Either way, the tool:
+### Questions, problems, or it worked?
+
+Post wherever suits you; no GitHub account needed for the first two:
+- [Home Assistant Community thread](https://community.home-assistant.io/t/lenovo-smart-display-8-as-a-de-googled-ha-dashboard-running-kiosk-satellite-w-assist-working-testers-wanted/1033810)
+- [XDA thread](https://xdaforums.com/t/lenovo-smart-display-8-home-assistant-kiosk-satellite.4808181/)
+- [GitHub issues](../../issues), if you have an account
+
+Say which computer you used, how far it got, and copy the last few lines the tool printed. The project also has a
+[Hackaday.io page](https://hackaday.io/project/207337-lenovo-smart-display-8-home-assistant-kiosk-vo).
+
+### For tinkerers
+
+Run it from source with your own Python 3.10+: [docs/PYTHON.md](docs/PYTHON.md). Do every step by hand, or point
+an AI agent at it: [devices/amber/README.md](devices/amber/README.md) has each step with the check that proves it
+worked (agents: start with [AGENTS.md](AGENTS.md)).
+
+## How it works
+
+The tool:
 - **downloads everything it needs from the original sources** and checks each file against a pinned checksum;
 - **makes a full backup first**, which you can skip after a warning;
 - **tells you exactly which buttons to hold, and when to let go.** The screen stays blank in those modes, so
@@ -82,15 +122,13 @@ Either way, the tool:
 - **can stop and pick up again.** Run the same command again to continue where it stopped.
 
 Wi-Fi, your time zone and the Home Assistant sign-in are done **on the display itself**, with its on-screen
-keyboard or by scanning a QR code. The tool never sees your passwords.
+keyboard or by scanning a QR code. The Home Assistant part also works from a browser, at an address the tool
+shows you. The tool never sees your passwords.
 
-**To go back to stock:** `lhk restore backup/display.zip` (or the `backup/display` folder) writes the backup
-back, then locks verified boot again so stock can start. A backup only restores to the display it came from. The
-backup step saves it as one zip file: copy that somewhere safe and keep it private. If a restore leaves the display
-unlocked, `lhk lock` locks it. Setup takes 20 to 30 minutes, including the downloads.
-
-**By hand, or for AI agents:** [devices/amber/README.md](devices/amber/README.md) has every step, with the check
-that proves it worked. Agents: start with [AGENTS.md](AGENTS.md).
+**To go back to Google's software**, in the same folder, type `lhk\lhk restore backup\display.zip` on Windows or
+`./lhk/lhk restore backup/display.zip` on Mac and Linux. It writes the backup back, then locks verified boot again
+so the original software can start. It takes about 10 minutes. A backup only restores to the display it came from.
+If you leave it unlocked at the end, `lhk lock` locks it later.
 
 ## Credits
 

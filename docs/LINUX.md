@@ -11,7 +11,7 @@ For x86-64 PCs. It takes **20 to 30 minutes**, most of it waiting. On other CPUs
 
 ## 2. Download and unzip
 
-1. From [Releases](../../../releases), download **`lhk-linux-x86_64.zip`**.
+1. Download **[lhk-linux-x86_64.zip](https://github.com/TRusselo/lenovo-display-ha-kiosk/releases/latest/download/lhk-linux-x86_64.zip)**. That link always gets the newest version.
 2. Unzip it into a folder of its own: right-click it and choose **Extract Here**, or run `unzip
    lhk-linux-x86_64.zip -d lhk-kiosk`.
 
@@ -74,3 +74,7 @@ Afterwards you can remove the two system files:
 ```bash
 sudo rm /etc/udev/rules.d/51-lhk.rules /etc/modprobe.d/lhk-no-qcserial.conf
 ```
+
+## Questions or problems?
+
+Ask in the [Home Assistant Community thread](https://community.home-assistant.io/t/lenovo-smart-display-8-as-a-de-googled-ha-dashboard-running-kiosk-satellite-w-assist-working-testers-wanted/1033810) or the [XDA thread](https://xdaforums.com/t/lenovo-smart-display-8-home-assistant-kiosk-satellite.4808181/) (no GitHub account needed), or [open an issue](../../../issues). Say how far it got, and copy the last few lines the tool printed.

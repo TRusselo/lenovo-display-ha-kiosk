@@ -4,7 +4,8 @@ For Windows 10 or 11 on an Intel or AMD PC. It takes **20 to 30 minutes**, most 
 
 > [!NOTE]
 > Tested end to end on Linux only. The Windows program hasn't converted a real display yet. If you try it,
-> please [open an issue](../../../issues) to say how it went, whether it worked or not.
+> please say how it went, whether it worked or not, in the
+> [Home Assistant Community thread](https://community.home-assistant.io/t/lenovo-smart-display-8-as-a-de-googled-ha-dashboard-running-kiosk-satellite-w-assist-working-testers-wanted/1033810) or the [XDA thread](https://xdaforums.com/t/lenovo-smart-display-8-home-assistant-kiosk-satellite.4808181/) (no GitHub account needed), or [open an issue](../../../issues).
 
 ## 1. What you need
 
@@ -14,7 +15,7 @@ For Windows 10 or 11 on an Intel or AMD PC. It takes **20 to 30 minutes**, most 
 
 ## 2. Download and unzip
 
-1. From [Releases](../../../releases), download **`lhk-windows-x86_64.zip`**.
+1. Download **[lhk-windows-x86_64.zip](https://github.com/TRusselo/lenovo-display-ha-kiosk/releases/latest/download/lhk-windows-x86_64.zip)**. That link always gets the newest version.
 2. Right-click the zip and choose **Extract All**. Pick a folder **without spaces** in its name, for example
    `C:\lhk`, and click **Extract**.
 
@@ -60,3 +61,7 @@ lhk\lhk setup
 
 At the end the tool names your backup file, in the `backup` folder. Copy it somewhere safe, off this PC if you
 can, and keep it private: it's the only way back to the display's original software.
+
+## Questions or problems?
+
+Ask in the [Home Assistant Community thread](https://community.home-assistant.io/t/lenovo-smart-display-8-as-a-de-googled-ha-dashboard-running-kiosk-satellite-w-assist-working-testers-wanted/1033810) or the [XDA thread](https://xdaforums.com/t/lenovo-smart-display-8-home-assistant-kiosk-satellite.4808181/) (no GitHub account needed), or [open an issue](../../../issues). Say how far it got, and copy the last few lines the tool printed.

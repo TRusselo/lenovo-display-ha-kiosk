@@ -3,8 +3,8 @@
 For Macs with Apple silicon (M1 and later). It takes **20 to 30 minutes**, most of it waiting.
 
 > [!NOTE]
-> Untested on a real display so far. If you try it, please [open an issue](../../../issues) to say how it went,
-> whether it worked or not.
+> Untested on a real display so far. If you try it, please say how it went, whether it worked or not, in the
+> [Home Assistant Community thread](https://community.home-assistant.io/t/lenovo-smart-display-8-as-a-de-googled-ha-dashboard-running-kiosk-satellite-w-assist-working-testers-wanted/1033810) or the [XDA thread](https://xdaforums.com/t/lenovo-smart-display-8-home-assistant-kiosk-satellite.4808181/) (no GitHub account needed), or [open an issue](../../../issues).
 
 On an **Intel Mac**, there's no ready-made program: use the [Python method](PYTHON.md) instead.
 
@@ -18,7 +18,7 @@ Nothing else to install.
 
 ## 2. Download and unzip
 
-1. From [Releases](../../../releases), download **`lhk-macos-arm64.zip`**.
+1. Download **[lhk-macos-arm64.zip](https://github.com/TRusselo/lenovo-display-ha-kiosk/releases/latest/download/lhk-macos-arm64.zip)**. That link always gets the newest version.
 2. Double-click the zip. It unzips into a folder next to it. You can move that folder anywhere, for example
    into your home folder.
 
@@ -57,3 +57,7 @@ only need it once.
 
 At the end the tool names your backup file, in the `backup` folder. Copy it somewhere safe, off this Mac if you
 can, and keep it private: it's the only way back to the display's original software.
+
+## Questions or problems?
+
+Ask in the [Home Assistant Community thread](https://community.home-assistant.io/t/lenovo-smart-display-8-as-a-de-googled-ha-dashboard-running-kiosk-satellite-w-assist-working-testers-wanted/1033810) or the [XDA thread](https://xdaforums.com/t/lenovo-smart-display-8-home-assistant-kiosk-satellite.4808181/) (no GitHub account needed), or [open an issue](../../../issues). Say how far it got, and copy the last few lines the tool printed.
