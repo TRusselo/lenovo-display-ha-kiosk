@@ -185,3 +185,36 @@ def test_download_and_unpack_show_progress(tmp_path, server):
     fetch("x", ctx)
     assert any(l.startswith("[busy] Downloading p.tar.gz") for l in ctx.ui.lines)
     assert "[busy] Unpacking p.tar.gz" in ctx.ui.lines
+
+
+# CI: Python 3.10 before 3.10.12 has no extractall(filter=...).
+def _old_tarfile(monkeypatch):
+    import tarfile
+    monkeypatch.delattr(tarfile, "data_filter")
+    real = tarfile.TarFile.extractall
+
+    def no_filter(self, path=".", members=None, *, numeric_owner=False, **kw):
+        if kw:
+            raise TypeError(f"extractall() got an unexpected keyword argument {next(iter(kw))!r}")
+        return real(self, path, members, numeric_owner=numeric_owner, filter="fully_trusted")
+    monkeypatch.setattr(tarfile.TarFile, "extractall", no_filter)
+
+
+def test_unpacks_tar_gz_on_pythons_without_extract_filters(tmp_path, server, monkeypatch):
+    _old_tarfile(monkeypatch)
+    test_unpacks_tar_gz(tmp_path, server)
+
+
+def test_tar_paths_outside_the_folder_are_refused_without_extract_filters(tmp_path, monkeypatch):
+    import io
+    import tarfile
+    from lhk import downloads
+    _old_tarfile(monkeypatch)
+    archive = tmp_path / "evil.tar.gz"
+    with tarfile.open(archive, "w:gz") as t:
+        info = tarfile.TarInfo("../outside")
+        info.size = 1
+        t.addfile(info, io.BytesIO(b"x"))
+    with pytest.raises(ValueError, match="outside"):
+        downloads._unpack("tar.gz", archive, tmp_path / "out")
+    assert not (tmp_path / "outside").exists()

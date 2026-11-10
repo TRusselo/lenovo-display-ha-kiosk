@@ -30,6 +30,9 @@ class _Tty(io.StringIO):
 
 
 def test_alert_is_coloured_on_a_terminal(monkeypatch):
+    # CI's Windows runner has no real console to switch to colour mode.
+    import lhk.ui
+    monkeypatch.setattr(lhk.ui, "_windows_vt_on", lambda: True)
     monkeypatch.delenv("NO_COLOR", raising=False)
     out = _Tty()
     UI(stdout=out).alert("NOT DONE YET")

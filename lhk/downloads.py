@@ -99,7 +99,14 @@ def _unpack(kind: str, archive: Path, out: Path) -> None:
     elif kind == "tar.gz":
         import tarfile
         with tarfile.open(archive, "r:gz") as t:
-            t.extractall(tmp, filter="data")
+            if hasattr(tarfile, "data_filter"):
+                t.extractall(tmp, filter="data")
+            else:  # Python 3.10 before 3.10.12 has no extraction filters: check by hand.
+                for m in t.getmembers():
+                    p = Path(m.name)
+                    if p.is_absolute() or ".." in p.parts or not (m.isfile() or m.isdir()):
+                        raise ValueError(f"refusing to unpack {m.name}: outside its folder, or a link")
+                t.extractall(tmp)
     else:
         raise ValueError(f"unknown archive type {kind}")
     shutil.rmtree(out, ignore_errors=True)

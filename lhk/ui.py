@@ -7,6 +7,20 @@ import sys
 import threading
 
 
+def _windows_vt_on() -> bool:
+    """Windows consoles show colour codes only with virtual-terminal mode on."""
+    try:
+        import ctypes
+        k = ctypes.windll.kernel32
+        h = k.GetStdHandle(-11)
+        mode = ctypes.c_uint32()
+        if not k.GetConsoleMode(h, ctypes.byref(mode)):
+            return False
+        return bool(k.SetConsoleMode(h, mode.value | 0x0004))
+    except Exception:
+        return False
+
+
 class UI:
     def __init__(self, stdin=None, stdout=None):
         self.stdin = stdin or sys.stdin
@@ -32,18 +46,7 @@ class UI:
     def _colour(self) -> bool:
         if os.environ.get("NO_COLOR") or not getattr(self.stdout, "isatty", lambda: False)():
             return False
-        if os.name == "nt":
-            try:  # Windows consoles show colour codes only with virtual-terminal mode on.
-                import ctypes
-                k = ctypes.windll.kernel32
-                h = k.GetStdHandle(-11)
-                mode = ctypes.c_uint32()
-                if not k.GetConsoleMode(h, ctypes.byref(mode)):
-                    return False
-                return bool(k.SetConsoleMode(h, mode.value | 0x0004))
-            except Exception:
-                return False
-        return True
+        return _windows_vt_on() if os.name == "nt" else True
 
     def alert(self, text: str) -> None:
         """Something easy to miss that matters: bold yellow on a terminal.
