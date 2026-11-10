@@ -1,0 +1,36 @@
+name: volkeys-jar
+
+# Builds the volume button helper (assets/bootfix/volkeys/VolKeys.java) into
+# ks-volkeys.jar, so users need no Java or Android SDK. release.yml reuses it.
+on:
+  push:
+    paths: ["assets/bootfix/volkeys/**", ".github/workflows/jar.yml"]
+  workflow_call:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: "platforms;android-35 build-tools;35.0.0"
+      - name: Build ks-volkeys.jar
+        working-directory: assets/bootfix/volkeys
+        run: |
+          SDK="$ANDROID_HOME"
+          mkdir -p build/classes
+          javac --release 8 -cp "$SDK/platforms/android-35/android.jar" -d build/classes VolKeys.java
+          (cd build/classes && jar cf ../classes.jar ks/*.class)
+          "$SDK/build-tools/35.0.0/d8" --min-api 26 --lib "$SDK/platforms/android-35/android.jar" \
+            --output build/ks-volkeys.jar build/classes.jar
+          unzip -l build/ks-volkeys.jar | grep classes.dex
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ks-volkeys-jar
+          path: assets/bootfix/volkeys/build/ks-volkeys.jar

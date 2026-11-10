@@ -1,0 +1,83 @@
+name: release
+
+# On a version tag: build the volume helper jar, build the standalone program
+# for Windows, macOS and Linux (with the jar inside), and attach everything
+# to a GitHub release. edl is never bundled; it's downloaded at run time.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  jar:
+    uses: ./.github/workflows/jar.yml
+
+  build:
+    needs: jar
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            name: windows-x86_64
+          - os: macos-latest
+            name: macos-arm64
+          - os: ubuntu-latest
+            name: linux-x86_64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@v4
+        with:
+          name: ks-volkeys-jar
+          path: .
+      - run: python -m pip install -r requirements.txt pyinstaller
+      - run: python -m pytest -q
+      - run: pyinstaller --noconfirm lhk.spec
+      - name: Smoke test
+        shell: bash
+        run: |
+          ./dist/lhk/lhk --version
+          ./dist/lhk/lhk setup --dry-run --workdir "$RUNNER_TEMP/lhk-smoke"
+          if find dist/lhk -iname 'edl.py' | grep -q .; then echo "edl must not be bundled"; exit 1; fi
+      - name: Zip
+        shell: bash
+        run: |
+          # The docs the tool's messages name go in the zip, next to the program.
+          # docs/plans holds planning notes, not user docs, so it stays out.
+          cp README.md LICENSE dist/
+          cp -r docs devices dist/
+          rm -rf dist/docs/plans
+          test -f dist/docs/LINUX.md && test -f dist/devices/amber/README.md
+          cd dist
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            7z a "../lhk-${{ matrix.name }}.zip" lhk README.md LICENSE docs devices >/dev/null
+          else
+            zip -qr "../lhk-${{ matrix.name }}.zip" lhk README.md LICENSE docs devices
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lhk-${{ matrix.name }}
+          path: lhk-${{ matrix.name }}.zip
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          merge-multiple: true
+      - name: Checksums
+        run: cd out && sha256sum * > SHA256SUMS && cat SHA256SUMS
+      - uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: out/*
+          draft: true

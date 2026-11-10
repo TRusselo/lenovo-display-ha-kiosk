@@ -1,0 +1,10 @@
+# Disabled with `pm disable` (survives reboot). These four are the Assistant,
+# Cast and the phone-home check-ins. Everything else com.google.* is part of
+# Android Things itself and must stay: disabling it breaks Wi-Fi, audio, input
+# or the light sensor. In particular never disable:
+#   com.google.android.things.sparrow.oem          (light sensor, volume buttons)
+#   com.google.assistant.gallium.client.androidthingshost
+com.google.assistant.gallium.dragonglass.platform.androidthings.system
+com.google.android.apps.mediashell
+com.google.android.things.checkin
+com.google.android.things.customcheckin

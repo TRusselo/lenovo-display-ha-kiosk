@@ -1,0 +1,31 @@
+[project]
+name = "lhk"
+version = "0.1.0"
+description = "Degoogled Lenovo Smart Display 8 → Home Assistant kiosk: Kiosk Satellite dashboard + local voice satellite. Guided unlock, backup and flash for Windows, macOS and Linux."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+dependencies = [
+    "pyusb>=1.2",
+    "libusb-package>=1.0.26",
+    "py7zr>=0.20",
+    "requests>=2.31",
+    "pycryptodome>=3.19",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[project.scripts]
+lhk = "lhk.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["lhk"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

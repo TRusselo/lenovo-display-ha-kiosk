@@ -1,0 +1,8 @@
+# lenovo-display-ha-kiosk: let you reach the display over USB without root, in
+# EDL (05c6:9008), fastboot (18d1:d00d) and adb (18d1:4ee7).
+# uaccess: whoever is logged in at this computer (systemd-logind desktops).
+# plugdev: everyone in that group, for SSH or systems without systemd-logind.
+# ID_MM_DEVICE_IGNORE keeps ModemManager away from the display in EDL.
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="05c6", ATTRS{idProduct}=="9008", MODE="0660", GROUP="plugdev", TAG+="uaccess", ENV{ID_MM_DEVICE_IGNORE}="1"
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="18d1", ATTRS{idProduct}=="d00d", MODE="0660", GROUP="plugdev", TAG+="uaccess"
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="18d1", ATTRS{idProduct}=="4ee7", MODE="0660", GROUP="plugdev", TAG+="uaccess"

@@ -1,0 +1,25 @@
+# Restart Kiosk Satellite once the light sensor is registered (see ks-boot-fix.sh).
+# Lives in /system/etc/init, which init loads on its own: /init.rc is never touched.
+#
+# SELinux: init may not switch to su (avc denied { transition }). The script
+# file is labelled dumpstate_exec instead, so init starts it in the dumpstate
+# domain, which may already run dumpsys and am (bug reports use both):
+#   chcon u:object_r:dumpstate_exec:s0 /system/bin/ks-boot-fix.sh
+
+service ks_boot_fix /system/bin/ks-boot-fix.sh
+    user root
+    group root log
+    disabled
+    oneshot
+
+# Hardware volume buttons -> real volume keys (see ks-volume-keys.sh).
+# Long-running: init restarts it if it exits. Same dumpstate_exec label:
+#   chcon u:object_r:dumpstate_exec:s0 /system/bin/ks-volume-keys.sh
+service ks_volume_keys /system/bin/ks-volume-keys.sh
+    user root
+    group root log input
+    disabled
+
+on property:sys.boot_completed=1
+    start ks_boot_fix
+    start ks_volume_keys

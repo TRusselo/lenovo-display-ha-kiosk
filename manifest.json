@@ -1,0 +1,101 @@
+{
+  "_comment": "Everything the tool downloads at run time. Nothing here is hosted by this repo. A file whose SHA-256 doesn't match is deleted and the run stops.",
+  "entries": [
+    {
+      "id": "platform-tools-windows",
+      "url": "https://dl.google.com/android/repository/platform-tools_r36.0.0-win.zip",
+      "sha256": "12c2841f354e92a0eb2fd7bf6f0f9bf8538abce7bd6b060ac8349d6f6a61107c",
+      "size": 7138784,
+      "unpack": "zip",
+      "platform": "windows"
+    },
+    {
+      "id": "platform-tools-darwin",
+      "url": "https://dl.google.com/android/repository/platform-tools_r36.0.0-darwin.zip",
+      "sha256": "d3e9fa1df3345cf728586908426615a60863d2632f73f1ce14f0f1349ef000fd",
+      "size": 14186137,
+      "unpack": "zip",
+      "platform": "darwin"
+    },
+    {
+      "id": "platform-tools-linux",
+      "url": "https://dl.google.com/android/repository/platform-tools_r36.0.0-linux.zip",
+      "sha256": "0ead642c943ffe79701fccca8f5f1c69c4ce4f43df2eefee553f6ccb27cbfbe8",
+      "size": 7904253,
+      "unpack": "zip",
+      "platform": "linux"
+    },
+    {
+      "id": "oimk-userdebug-frw",
+      "url": "https://archive.org/download/android-things-oreo-builds/OIMK.211005.001-userdebug-blueberry-FRW.7z",
+      "sha256": "ca243aa4fef755052d80a90915b9f64e729fc1e1a190f6baa913f3cff68f53ad",
+      "size": 738309431,
+      "unpack": "7z",
+      "platform": null
+    },
+    {
+      "id": "avb-unlock",
+      "url": "https://s3.us-east-1.wasabisys.com/filestash-buk/lenovo-solutions/Lenovo-Android-Things-avb-unlock.zip",
+      "sha256": "8e2ae30844961614cff7e4aeb1ed0d4d08d1f617aaf27d0835b79ed91d0c8be3",
+      "size": 4076899,
+      "unpack": "zip",
+      "platform": null
+    },
+    {
+      "id": "firehose",
+      "url": "https://s3.us-east-1.wasabisys.com/filestash-buk/lenovo-solutions/amber_bluebbery_prog_emmc_firehose_8953_ddr.zip",
+      "sha256": "e5abaec6fca5e0dc3a79c050fc06aa047f1b521ffb2e7ec8cb0f2140f09a06b1",
+      "size": 211712,
+      "unpack": "zip",
+      "platform": null
+    },
+    {
+      "id": "edl",
+      "url": "https://github.com/bkerler/edl/archive/1cda1a616748d608667b2d13b73a28d3197ceb45.zip",
+      "sha256": "cabe160de2b387e770792d6d00c63f074daba2ef064e4277ea383e4c6cd375a4",
+      "size": 19468398,
+      "unpack": "zip",
+      "platform": null
+    },
+    {
+      "id": "uv-windows-x86_64",
+      "url": "https://github.com/astral-sh/uv/releases/download/0.11.7/uv-x86_64-pc-windows-msvc.zip",
+      "sha256": "fe0c7815acf4fc45f8a5eff58ed3cf7ae2e15c3cf1dceadbd10c816ec1690cc1",
+      "size": 23572531,
+      "unpack": "zip",
+      "platform": "windows-x86_64"
+    },
+    {
+      "id": "uv-darwin-arm64",
+      "url": "https://github.com/astral-sh/uv/releases/download/0.11.7/uv-aarch64-apple-darwin.tar.gz",
+      "sha256": "66e37d91f839e12481d7b932a1eccbfe732560f42c1cfb89faddfa2454534ba8",
+      "size": 20839135,
+      "unpack": "tar.gz",
+      "platform": "darwin-arm64"
+    },
+    {
+      "id": "uv-darwin-x86_64",
+      "url": "https://github.com/astral-sh/uv/releases/download/0.11.7/uv-x86_64-apple-darwin.tar.gz",
+      "sha256": "0a4bc8fcde4974ea3560be21772aeecab600a6f43fa6e58169f9fa7b3b71d302",
+      "size": 22522163,
+      "unpack": "tar.gz",
+      "platform": "darwin-x86_64"
+    },
+    {
+      "id": "uv-linux-x86_64",
+      "url": "https://github.com/astral-sh/uv/releases/download/0.11.7/uv-x86_64-unknown-linux-gnu.tar.gz",
+      "sha256": "6681d691eb7f9c00ac6a3af54252f7ab29ae72f0c8f95bdc7f9d1401c23ea868",
+      "size": 24249861,
+      "unpack": "tar.gz",
+      "platform": "linux-x86_64"
+    },
+    {
+      "id": "uv-linux-aarch64",
+      "url": "https://github.com/astral-sh/uv/releases/download/0.11.7/uv-aarch64-unknown-linux-gnu.tar.gz",
+      "sha256": "f2ee1cde9aabb4c6e43bd3f341dadaf42189a54e001e521346dc31547310e284",
+      "size": 22739428,
+      "unpack": "tar.gz",
+      "platform": "linux-aarch64"
+    }
+  ]
+}
