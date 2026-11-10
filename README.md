@@ -1,6 +1,9 @@
+
 # lenovo-display-ha-kiosk
 
-**Turn a degoogled Lenovo Smart Display 8 into a Home Assistant kiosk: a dashboard on screen and a local voice
+<img width="500" alt="20261110_005025_preview" src="https://github.com/user-attachments/assets/2fe74d01-364a-44ea-ae53-f39feede5279" />
+
+**Turn a stock Lenovo Smart Display 8 into a degoogled Home Assistant kiosk: a dashboard on screen and a local voice
 satellite.**
 
 Lenovo's Smart Displays stopped getting updates, and keep losing Google features. Their clocks also drift wrong
