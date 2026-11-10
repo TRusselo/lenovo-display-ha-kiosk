@@ -190,6 +190,8 @@ def test_download_and_unpack_show_progress(tmp_path, server):
 # CI: Python 3.10 before 3.10.12 has no extractall(filter=...).
 def _old_tarfile(monkeypatch):
     import tarfile
+    if not hasattr(tarfile, "data_filter"):
+        return  # already an old Python: nothing to fake
     monkeypatch.delattr(tarfile, "data_filter")
     real = tarfile.TarFile.extractall
 
