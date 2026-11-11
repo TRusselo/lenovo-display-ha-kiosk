@@ -163,12 +163,18 @@ def test_serial_refuses_two_devices(tmp_path, monkeypatch):
         system.serial(c)
 
 
+OWNER_DUMP = ("Device Owner: \n"
+              "  admin=ComponentInfo{me.jxl.kiosk_satellite/me.jxl.kiosk_satellite.KioskAdminReceiver}\n"
+              "  name=\n  package=me.jxl.kiosk_satellite\n")
+
+
 def test_verify_step_runs(tmp_path, monkeypatch):
     from lhk import plan, bootfix
     runner = FakeRunner({
         ("-s", "S1", "shell", "getprop", "ro.build.fingerprint"):
             Result(0, "Things/x:8.1.0/OIMK.211005.001/7795499:userdebug/dev-keys\n"),
         ("-s", "S1", "shell", "wm", "size"): Result(0, "Physical size: 800x1280\n"),
+        ("-s", "S1", "shell", "dumpsys", "device_policy"): Result(0, OWNER_DUMP),
     })
     monkeypatch.setattr(bootfix, "verify", lambda ctx, **kw: [])
     plan.VerifyStep().run(make_ctx(tmp_path, runner))
@@ -236,6 +242,7 @@ def test_all_done_reminds_to_save_the_backup_by_name(tmp_path, monkeypatch):
         ("-s", "S1", "shell", "getprop", "ro.build.fingerprint"):
             Result(0, "Things/x:8.1.0/OIMK.211005.001/7795499:userdebug/dev-keys\n"),
         ("-s", "S1", "shell", "wm", "size"): Result(0, "Physical size: 800x1280\n"),
+        ("-s", "S1", "shell", "dumpsys", "device_policy"): Result(0, OWNER_DUMP),
     })
     monkeypatch.setattr(bootfix, "verify", lambda ctx, **kw: [])
     ctx = make_ctx(tmp_path, runner)
@@ -246,3 +253,21 @@ def test_all_done_reminds_to_save_the_backup_by_name(tmp_path, monkeypatch):
     plan.VerifyStep().run(ctx)
     end = " ".join(ctx.ui.lines[ctx.ui.lines.index("All done. The display is a Home Assistant kiosk."):])
     assert str(z) in end and "safe" in end
+
+
+def test_final_check_fails_when_kiosk_satellite_is_not_device_owner(tmp_path, monkeypatch):
+    # HA Community #19: a display without device admin or owner reached use.
+    # Without it Kiosk Satellite can't update itself silently or hold home.
+    from lhk import plan, bootfix
+    runner = FakeRunner({
+        ("-s", "S1", "shell", "getprop", "ro.build.fingerprint"):
+            Result(0, "Things/x:8.1.0/OIMK.211005.001/7795499:userdebug/dev-keys\n"),
+        ("-s", "S1", "shell", "wm", "size"): Result(0, "Physical size: 800x1280\n"),
+        ("-s", "S1", "shell", "dumpsys", "device_policy"): Result(0, "Device Policy Management:\n"),
+    })
+    monkeypatch.setattr(bootfix, "verify", lambda ctx, **kw: [])
+    ctx = make_ctx(tmp_path, runner)
+    with pytest.raises(system.SetupFailed, match="device owner") as e:
+        plan.VerifyStep().run(ctx)
+    assert "--from kiosk-grants" in str(e.value)
+    assert "All done. The display is a Home Assistant kiosk." not in ctx.ui.lines

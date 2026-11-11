@@ -71,6 +71,9 @@ class VerifyStep(Step):
         ident = check_adb_identity(ctx, system.serial(ctx))
         problems = ([] if ident.is_target_build else ["the display isn't running the userdebug build"])
         problems += bootfix.verify(ctx)
+        if not kiosk.is_device_owner(ctx):
+            problems.append("Kiosk Satellite isn't device owner, so it can't update itself or keep the home "
+                            "screen. Run: lhk setup --from kiosk-grants")
         if problems:
             raise system.SetupFailed("Final check failed: " + "; ".join(problems) + ".")
         ctx.ui.say("All done. The display is a Home Assistant kiosk.")
