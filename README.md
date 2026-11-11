@@ -41,7 +41,7 @@ at your own risk.
 | Assistant | Google, in the cloud | Home Assistant Assist, with wake word on the device |
 | Screen | Google's ambient screen | Your Home Assistant dashboard |
 | Music | Cast | Music Assistant (Sendspin), volume buttons work |
-| Clock | Wrong after DST rule changes | Current time zone data |
+| Clock | Wrong after DST rule changes | Current time zone data ([dashboard caveat](docs/TIMEZONES.md#dashboards-can-still-be-an-hour-off)) |
 | Brightness | Automatic | Automatic (light sensor) |
 | Updates | None | Kiosk Satellite updates itself |
 | Google | Everything | Off: Assistant, Cast, check-ins |
