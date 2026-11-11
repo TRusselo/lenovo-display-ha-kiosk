@@ -135,13 +135,19 @@ class InstallStep(Step):
             adb(ctx, "install", "-r", "-g", str(dest), timeout=600)
 
 
+def is_device_owner(ctx) -> bool:
+    """Device owner implies an active device admin: it's what lets Kiosk
+    Satellite update itself silently and keep the home screen."""
+    out = shell(ctx, "dumpsys", "device_policy", check=False)
+    return "Device Owner" in out and PKG in out.split("Device Owner", 1)[1][:400]
+
+
 class GrantsStep(Step):
     name = "kiosk-grants"
     title = "Give Kiosk Satellite its permissions and make it device owner"
 
     def _is_owner(self, ctx) -> bool:
-        out = shell(ctx, "dumpsys", "device_policy", check=False)
-        return "Device Owner" in out and PKG in out.split("Device Owner", 1)[1][:400]
+        return is_device_owner(ctx)
 
     def done(self, ctx) -> bool:
         return self._is_owner(ctx) and "allow" in shell(
