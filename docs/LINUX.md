@@ -3,6 +3,9 @@
 For x86-64 PCs. It takes **20 to 30 minutes**, most of it waiting. On other CPUs, use the
 [Python method](PYTHON.md).
 
+New to this? [Words you'll see](../README.md#words-youll-see) explains terminal, EDL mode, fastboot mode and
+verified boot in a few lines.
+
 ## 1. What you need
 
 - A **Lenovo Smart Display 8**: the label on the back says **SD-8501F**. Other models aren't supported.

@@ -83,10 +83,14 @@ carries on where it left off.
 
 Each system has a one-time extra step (drivers on Windows, a permission on Mac and Linux). The full guides walk
 you through it: [Windows](docs/WINDOWS.md) · [Mac](docs/MACOS.md) · [Linux](docs/LINUX.md).
+Every page, in the order you'll need them: [the guide](docs/GUIDE.md).
 
 > [!NOTE]
-> Tested end to end on **Linux** only. The Windows and Mac programs are built and their tests pass, but neither
-> has converted a real display yet. If you try one, please say how it went, whether it worked or not.
+> Tested end to end on **Linux**. One display has also been converted on a **Mac**, by
+> [running from source](docs/PYTHON.md): macOS blocked the ready-made Mac program with security warnings, and
+> the [Mac guide](docs/MACOS.md#if-macos-blocks-the-program) now covers that. The Windows program is built and its
+> tests pass, but it hasn't converted a real display yet. If you try one, please say how it went, whether it
+> worked or not.
 
 ### Words you'll see
 

@@ -3,9 +3,13 @@
 For Windows 10 or 11 on an Intel or AMD PC. It takes **20 to 30 minutes**, most of it waiting.
 
 > [!NOTE]
-> Tested end to end on Linux only. The Windows program hasn't converted a real display yet. If you try it,
+> Tested end to end on Linux, and on a Mac running from source. The Windows program hasn't converted a real
+> display yet. If you try it,
 > please say how it went, whether it worked or not, in the
 > [Home Assistant Community thread](https://community.home-assistant.io/t/lenovo-smart-display-8-as-a-de-googled-ha-dashboard-running-kiosk-satellite-w-assist-working-testers-wanted/1033810) or the [XDA thread](https://xdaforums.com/t/lenovo-smart-display-8-home-assistant-kiosk-satellite.4808181/) (no GitHub account needed), or [open an issue](../../../issues).
+
+New to this? [Words you'll see](../README.md#words-youll-see) explains terminal, EDL mode, fastboot mode and
+verified boot in a few lines.
 
 ## 1. What you need
 
@@ -61,6 +65,21 @@ lhk\lhk setup
 
 At the end the tool names your backup file, in the `backup` folder. Copy it somewhere safe, off this PC if you
 can, and keep it private: it's the only way back to the display's original software.
+
+## If antivirus blocks the program
+
+The program isn't signed, and antivirus software sometimes flags programs built this way (with PyInstaller)
+even when they're harmless. If `lhk` disappears, or Windows says it found a threat in it:
+
+1. Check the zip is the real one. In the folder with the zip, run:
+   ```bat
+   certutil -hashfile lhk-windows-x86_64.zip SHA256
+   ```
+   Compare the result with the `lhk-windows-x86_64.zip` line in `SHA256SUMS` on the
+   [release page](../../../releases/latest). If they don't match, delete the zip and download it again.
+2. If they match, open **Windows Security > Virus & threat protection > Protection history**, find the entry for
+   `lhk`, and choose **Allow** or **Restore**.
+3. Or [run it from source](PYTHON.md) instead: the same tool, run with Python.
 
 ## Questions or problems?
 

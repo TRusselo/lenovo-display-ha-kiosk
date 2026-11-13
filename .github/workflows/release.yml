@@ -51,15 +51,15 @@ jobs:
         run: |
           # The docs the tool's messages name go in the zip, next to the program.
           # docs/plans holds planning notes, not user docs, so it stays out.
-          cp README.md LICENSE dist/
+          cp README.md CHANGELOG.md LICENSE dist/
           cp -r docs devices dist/
           rm -rf dist/docs/plans
           test -f dist/docs/LINUX.md && test -f dist/devices/amber/README.md
           cd dist
           if [ "$RUNNER_OS" = "Windows" ]; then
-            7z a "../lhk-${{ matrix.name }}.zip" lhk README.md LICENSE docs devices >/dev/null
+            7z a "../lhk-${{ matrix.name }}.zip" lhk README.md CHANGELOG.md LICENSE docs devices >/dev/null
           else
-            zip -qr "../lhk-${{ matrix.name }}.zip" lhk README.md LICENSE docs devices
+            zip -qr "../lhk-${{ matrix.name }}.zip" lhk README.md CHANGELOG.md LICENSE docs devices
           fi
       - uses: actions/upload-artifact@v4
         with:
