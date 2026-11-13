@@ -132,9 +132,31 @@ def main(argv=None) -> int:
         print("\nStopped. Run the same command again to continue where you left off.", file=sys.stderr)
         return 130
     except Exception as e:  # every failure ends in plain words, not a traceback
-        print(f"\nStopped: {e}\nRun the same command again to retry this step. "
-              f"Details are in the log folder.", file=sys.stderr)
+        print(f"\nStopped: {e}", file=sys.stderr)
+        _print_log_tail(args)
+        print("Run the same command again to retry this step.", file=sys.stderr)
         return 1
+
+
+def _print_log_tail(args, lines: int = 12) -> None:
+    """The end of the run log, so the reason is on screen. The log is already redacted;
+    the home folder becomes ~ so a pasted copy doesn't carry the user's name."""
+    name, workdir = getattr(args, "name", None), getattr(args, "workdir", None)
+    if not name or workdir is None:
+        return
+    f = Paths(workdir).logs / f"{name}.log"
+    try:
+        text = f.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return
+    home = str(Path.home())
+    tail = [l for l in text.splitlines() if l.strip()][-lines:]
+    if not tail:
+        return
+    print("\nThe last lines of the log:", file=sys.stderr)
+    for line in tail:
+        print("  " + line.replace(home, "~"), file=sys.stderr)
+    print("Full log: " + str(f).replace(home, "~"), file=sys.stderr)
 
 
 if __name__ == "__main__":

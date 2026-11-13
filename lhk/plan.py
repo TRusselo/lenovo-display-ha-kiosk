@@ -1,7 +1,7 @@
 """The setup, in order. Each step skips itself when its work is already done."""
 from __future__ import annotations
 
-from lhk import backup, bootfix, kiosk, system, tzdata
+from lhk import backup, bootfix, doc, kiosk, system, tzdata
 from lhk.downloads import fetch, load_manifest, platform_entry, require_free_space
 from lhk.edl import Edl
 from lhk.flash import FlashStep
@@ -81,6 +81,16 @@ class VerifyStep(Step):
         if z.exists():
             ctx.ui.alert(f"SAVE YOUR BACKUP: copy {z} somewhere safe, off this computer if you can, and "
                          "keep it private. It's the only way back to this display's stock software.")
+        ip = system.wifi_ip(ctx)
+        nxt = []
+        if ip:
+            nxt.append(f"Change Kiosk Satellite's settings from a browser: http://{ip}:2324")
+        nxt += [
+            "Turn the screen off, with tap to wake: " + doc("docs/SCREEN.md"),
+            "If a dashboard shows times an hour off: " + doc("docs/TIMEZONES.md"),
+            "Questions: the Home Assistant Community and XDA threads, linked in " + doc("README.md"),
+        ]
+        ctx.ui.section("What's next", nxt)
 
 
 def setup_steps() -> list[Step]:

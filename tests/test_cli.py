@@ -166,3 +166,42 @@ def test_setup_says_how_long_it_takes_on_a_fresh_start(tmp_path, monkeypatch):
     ui.lines.clear()
     cli.main(["setup", "--workdir", str(tmp_path)])
     assert not any("20 to 30 minutes" in l for l in ui.lines)
+
+
+def test_failure_shows_the_end_of_the_log(tmp_path, monkeypatch, capsys):
+    # Users post "the last few lines the tool printed": show why, not just "see the log".
+    from pathlib import Path
+    log = tmp_path / "logs" / "display.log"
+    log.parent.mkdir(parents=True)
+    home = str(Path.home())
+    lines = [f"2026-11-12 INFO line {i}" for i in range(30)]
+    lines.append(f"2026-11-12 INFO $ {home}/lhk/cache/platform-tools/fastboot flash boot_a")
+    lines.append("2026-11-12 INFO exit 1\nFAILED (remote: 'partition not found')")
+    log.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+    def boom(*a, **k):
+        raise RuntimeError("the display stopped answering")
+    monkeypatch.setattr(cli, "_context", lambda args: Context(runner=FakeRunner(), ui=FakeUI(),
+                                                              paths=Paths(tmp_path), state={"progress_id": "display"}))
+    monkeypatch.setattr(cli, "run_steps", boom)
+    assert cli.main(["setup", "--workdir", str(tmp_path)]) == 1
+    err = capsys.readouterr().err
+    assert "the display stopped answering" in err
+    assert "partition not found" in err and "line 29" in err
+    assert "line 5" not in err                       # only the tail
+    assert home not in err and "~" in err            # no username in what people paste
+    assert str(log) in err.replace(home, "~") or "display.log" in err
+
+
+def test_ctrl_c_shows_no_log_tail(tmp_path, monkeypatch, capsys):
+    log = tmp_path / "logs" / "display.log"
+    log.parent.mkdir(parents=True)
+    log.write_text("2026-11-12 INFO secretless line\n", encoding="utf-8")
+
+    def stop(*a, **k):
+        raise KeyboardInterrupt
+    monkeypatch.setattr(cli, "_context", lambda args: Context(runner=FakeRunner(), ui=FakeUI(),
+                                                              paths=Paths(tmp_path), state={"progress_id": "display"}))
+    monkeypatch.setattr(cli, "run_steps", stop)
+    assert cli.main(["setup", "--workdir", str(tmp_path)]) == 130
+    assert "secretless line" not in capsys.readouterr().err

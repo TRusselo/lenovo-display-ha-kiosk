@@ -107,17 +107,23 @@ def run_steps(steps: list[Step], ctx: Context, *, start_from: str | None = None,
                    "or --name to start a different display.")
         return
     finished = [n for n in names if n in done]
-    if finished and not ctx.dry_run and ctx.ui is not None and start_from is None:
+    shown = not ctx.dry_run and ctx.ui is not None
+    if finished and shown and start_from is None:
         nxt = next(s for s in steps if s.name not in done)
         ctx.ui.say(f"Picking up where the last run stopped, at: {nxt.title} "
                    f"({len(finished)} of {len(names)} steps done).")
-    for step in steps:
+    if shown:
+        ctx.ui.overview([(s.title, s.name in done) for s in steps])
+    for number, step in enumerate(steps, 1):
         if step.name in done:
             continue
         if ctx.dry_run:
             if ctx.ui is not None:
                 ctx.ui.say(f"[dry run] {step.title}")
             continue
+        if shown:
+            # Numbered like the headings in the manual (devices/amber/README.md).
+            ctx.ui.header(number, len(steps), step.title)
         if step.done(ctx):
             if ctx.ui is not None:
                 ctx.ui.say(f"Already done on the display: {step.title}.")
@@ -125,3 +131,5 @@ def run_steps(steps: list[Step], ctx: Context, *, start_from: str | None = None,
             step.run(ctx)
         done.append(step.name)
         _save(ctx, done)
+        if shown:
+            ctx.ui.ok(step.title)

@@ -255,6 +255,24 @@ def test_all_done_reminds_to_save_the_backup_by_name(tmp_path, monkeypatch):
     assert str(z) in end and "safe" in end
 
 
+def test_final_check_ends_with_what_to_do_next(tmp_path, monkeypatch):
+    from lhk import plan, bootfix
+    runner = FakeRunner({
+        ("-s", "S1", "shell", "getprop", "ro.build.fingerprint"):
+            Result(0, "Things/x:8.1.0/OIMK.211005.001/7795499:userdebug/dev-keys\n"),
+        ("-s", "S1", "shell", "wm", "size"): Result(0, "Physical size: 800x1280\n"),
+        ("-s", "S1", "shell", "dumpsys", "device_policy"): Result(0, OWNER_DUMP),
+        ("-s", "S1", "shell", "ip", "-4", "addr", "show", "wlan0"):
+            Result(0, "    inet 10.0.0.50/24 brd 10.0.0.255 scope global wlan0\n"),
+    })
+    monkeypatch.setattr(bootfix, "verify", lambda ctx, **kw: [])
+    ctx = make_ctx(tmp_path, runner)
+    plan.VerifyStep().run(ctx)
+    section = next(l for l in ctx.ui.lines if l.startswith("[section] What's next"))
+    assert "http://10.0.0.50:2324" in section
+    assert "docs/SCREEN.md" in section and "docs/TIMEZONES.md" in section
+
+
 def test_final_check_fails_when_kiosk_satellite_is_not_device_owner(tmp_path, monkeypatch):
     # HA Community #19: a display without device admin or owner reached use.
     # Without it Kiosk Satellite can't update itself silently or hold home.

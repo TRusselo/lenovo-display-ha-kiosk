@@ -58,6 +58,18 @@ class FakeUI:
     def alert(self, text):
         self.lines.append(f"[alert] {text}")
 
+    def header(self, index, total, title):
+        self.lines.append(f"[step {index}/{total}] {title}")
+
+    def overview(self, steps):
+        self.lines.append("[overview] " + " ".join(f"{t}:{'done' if d else 'todo'}" for t, d in steps))
+
+    def ok(self, text):
+        self.lines.append(f"[ok] {text}")
+
+    def section(self, title, lines):
+        self.lines.append(f"[section] {title}: " + " | ".join(lines))
+
     def status(self, text):
         self.statuses.append(text)
 
