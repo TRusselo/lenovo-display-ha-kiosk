@@ -75,7 +75,9 @@ You don't need a GitHub account, and you don't need to know any code. You'll typ
 
 **4. Type the command** and press Enter:
 - Windows: `lhk\lhk setup`
-- Mac and Linux: `./lhk/lhk setup`
+- Mac: `xattr -dr com.apple.quarantine lhk` first, then `./lhk/lhk setup`. The first command stops macOS
+  blocking the program ([more](docs/MACOS.md#if-macos-blocks-the-program)).
+- Linux: `./lhk/lhk setup`
 
 **5. Do what it says.** It tells you each time it needs you: which buttons to hold on the display, what to set up on
 its screen, and when to press Enter. That's it. If it stops for any reason, type the same command again and it

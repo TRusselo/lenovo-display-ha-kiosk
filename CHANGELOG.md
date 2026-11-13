@@ -31,9 +31,6 @@ What changed for people converting a display. Newest first.
 - README and guides rewritten for people new to GitHub, with links to the Home Assistant Community thread, the
   XDA thread and the Hackaday.io page.
 
-### Fixes
-- Unpacking downloads works on Python 3.10, which has no tar extraction filters.
-
 ## 0.1.0 (2026-11-10)
 
 First release.

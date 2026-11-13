@@ -1,4 +1,5 @@
 import io
+import os
 import time
 
 import pytest
@@ -179,3 +180,32 @@ def test_section_prints_a_title_and_its_lines():
     text = out.getvalue()
     assert "What's next" in text and "one" in text and "two" in text
     assert text.index("What's next") < text.index("one") < text.index("two")
+
+
+def test_spinner_line_fits_a_narrow_terminal(monkeypatch):
+    # A wrapped line can't be redrawn with \r: every tick would leave a new line behind.
+    import re
+    import shutil
+    _vt_on(monkeypatch)
+    monkeypatch.setattr(shutil, "get_terminal_size", lambda fallback=(80, 24): os.terminal_size((40, 24)))
+    out = _Tty()
+    label = "Downloading " + "x" * 100 + ".zip (704 MB)"
+    with UI(stdout=out).busy(label, interval=0.01):
+        time.sleep(0.05)
+    frames = out.getvalue().split("\r")[1:-1]          # the spinner frames, not the final line
+    assert frames
+    for f in frames:
+        assert len(re.sub(r"\x1b\[[0-9;]*[A-Za-z]", "", f)) <= 39
+
+
+def test_old_windows_console_gets_plain_symbols(monkeypatch):
+    # Windows 10's console fonts have no Braille, check marks or arrows; Windows Terminal does.
+    import lhk.ui
+    monkeypatch.setattr(lhk.ui, "_old_windows_console", lambda: True)
+    out = io.StringIO()
+    UI(stdout=out).ok("Unlock")
+    assert "[x] Unlock" in out.getvalue()
+    monkeypatch.setattr(lhk.ui, "_old_windows_console", lambda: False)
+    out = io.StringIO()
+    UI(stdout=out).ok("Unlock")
+    assert "✓ Unlock" in out.getvalue()

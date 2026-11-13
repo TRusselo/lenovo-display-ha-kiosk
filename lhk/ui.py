@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import contextlib
 import os
+import shutil
 import sys
 import threading
 import time
@@ -33,6 +34,11 @@ _BOLD, _GREEN, _YELLOW, _RED, _CYAN, _DIM, _RESET = (
     "\x1b[1m", "\x1b[32m", "\x1b[1;33m", "\x1b[31m", "\x1b[1;36m", "\x1b[2m", "\x1b[0m")
 
 
+def _old_windows_console() -> bool:
+    """Windows' classic console window, whose fonts lack these symbols. Windows Terminal sets WT_SESSION."""
+    return os.name == "nt" and not os.environ.get("WT_SESSION")
+
+
 def _elapsed(seconds: float) -> str:
     s = int(seconds)
     return f"{s // 60}m {s % 60:02d}s" if s >= 60 else f"{s}s"
@@ -47,6 +53,8 @@ class UI:
         self._col = None
 
     def _symbols(self) -> dict:
+        if self._sym is None and _old_windows_console():
+            self._sym = _PLAIN
         if self._sym is None:
             enc = getattr(self.stdout, "encoding", None) or "utf-8"
             try:
@@ -154,8 +162,12 @@ class UI:
             i = 0
             while True:
                 took = time.monotonic() - start
-                extra = f"  {self._paint(_DIM, _elapsed(took))}" if took >= 3 else ""
-                self.stdout.write(f"\r\x1b[K  {self._paint(_CYAN, sym['spin'][i % len(sym['spin'])])} {text}{extra}")
+                time_text = f"  {_elapsed(took)}" if took >= 3 else ""
+                # Stay inside one row: a wrapped line can't be redrawn with \r.
+                room = shutil.get_terminal_size((80, 24)).columns - 1 - 4 - len(time_text)
+                label = text if len(text) <= room else text[:max(room - 3, 0)] + "..."
+                extra = f"  {self._paint(_DIM, time_text.strip())}" if time_text else ""
+                self.stdout.write(f"\r\x1b[K  {self._paint(_CYAN, sym['spin'][i % len(sym['spin'])])} {label}{extra}")
                 self.stdout.flush()
                 i += 1
                 if stop.wait(0.1):

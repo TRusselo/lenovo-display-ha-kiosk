@@ -72,16 +72,18 @@ can, and keep it private: it's the only way back to the display's original softw
 ## If macOS blocks the program
 
 macOS blocks programs from the internet that Apple hasn't checked. This one isn't checked: that needs a paid
-Apple developer account. The block looks like a message that macOS can't verify `lhk` or that it may be
-malware, with only **Done** and **Move to Trash** (or **Move to Bin**) buttons.
+Apple developer account. The block is a message that macOS can't verify `lhk`, or that it may be
+malware. The buttons differ between macOS versions.
 
-1. Click **Done**, not the button that moves it to the trash.
+1. Click anything except **Move to Trash** (or **Move to Bin**).
 2. In Terminal, in the folder you unzipped, run the `xattr` line from step 4 again, then `./lhk/lhk setup`.
    Check you're in the right folder first: `ls` should list `lhk`.
 3. If it's still blocked, open **System Settings > Privacy & Security**, scroll down to the message about
    `lhk`, and click **Open Anyway**. macOS may ask again for some of the files inside `lhk`: the `xattr` line
    is quicker than allowing each one.
-4. If none of that works, [run it from source](PYTHON.md) instead. It's the same tool, run with Python, and
+4. If it still says `lhk` **is damaged**, or Terminal prints `killed: 9`, go to the next point, and please
+   report the exact message: it tells us what to fix.
+5. If none of that works, [run it from source](PYTHON.md) instead. It's the same tool, run with Python, and
    macOS doesn't block it. That's how the first Mac conversion was done.
 
 ## Questions or problems?
