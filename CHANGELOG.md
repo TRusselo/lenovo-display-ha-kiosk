@@ -14,16 +14,22 @@ What changed for people converting a display. Newest first.
   shown as `~`, ready to copy into a forum post.
 - **A "What's next" list at the end:** Kiosk Satellite's settings address, turning the screen off, and where
   to ask questions.
+- **Makes room for Kiosk Satellite.** Cast's leftover data is cleared, and setup checks for free space
+  before installing. On one display Cast's data had filled the storage.
+- **Reconnects Wi-Fi** before Kiosk Satellite's setup if the display has lost it.
+- **Mac: stops before EDL mode if libusb is missing**, and says to run `brew install libusb`.
+- **When the display doesn't show up after flashing**, setup suggests a USB-A to USB-C cable.
 - The final check fails if Kiosk Satellite isn't device owner. Without that, it can't update itself or stay
   the home screen.
 
 ### Docs
 - New [guide index](docs/GUIDE.md), from choosing a guide to using the display afterwards.
+- [Fitting more on the screen](docs/SIZE.md): use Kiosk Satellite's zoom, not Android's screen density.
 - [Turning the screen off](docs/SCREEN.md): Kiosk Satellite's screensaver at brightness 0, with tap to wake.
   Its screen light entity can't turn the screen off on these displays.
 - [Dashboards can still be an hour off](docs/TIMEZONES.md#dashboards-can-still-be-an-hour-off): the built-in
   browser uses its own old time zone rules. The fix is to format times in Home Assistant.
-- Mac guide: what to do when macOS blocks the program, and that one display has been converted on a Mac by
+- Mac guide: use a USB-A to USB-C cable and install libusb with Homebrew. What to do when macOS blocks the program, and that one display has been converted on a Mac by
   running from source.
 - Windows guide: what to do if antivirus removes the program, and how to check the download against the
   release checksums.

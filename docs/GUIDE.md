@@ -42,6 +42,7 @@ New to this? [Words you'll see](../README.md#words-youll-see) explains the terms
 ## After setup
 
 - [Turning the screen off](SCREEN.md), with tap to wake.
+- [Fitting more on the screen](SIZE.md): Kiosk Satellite's zoom, not Android's screen density.
 - [Time zones](TIMEZONES.md), and why a dashboard can show a time an hour off.
 - Kiosk Satellite's settings: on the display, or in a browser at `http://<the display's address>:2324`. The
   tool shows the address at the end.
