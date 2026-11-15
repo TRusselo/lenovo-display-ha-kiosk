@@ -3,17 +3,32 @@ the Amber/Blueberry firehose loader. It runs through uv (lhk/uvrun.py) with
 its own requirements, so nothing of edl's ends up inside this tool."""
 from __future__ import annotations
 
+import os
+import sys
 from pathlib import Path
 
 from lhk.downloads import fetch
+from lhk.modes import LIBUSB_MISSING, UsbBackendMissing
 from lhk.uvrun import uv_path, uv_python
 
 LOADER = "amber_bluebbery_prog_emmc_firehose_8953_ddr.mbn"
 GPT_SECTORS = 34
 
 
+# edl runs in its own Python and loads the system's libusb, never the copy this
+# tool brings. On a Mac that means Homebrew's.
+MAC_LIBUSB = ("/opt/homebrew/lib/libusb-1.0.dylib", "/usr/local/lib/libusb-1.0.dylib")
+
+
+def check_libusb(platform=None, exists=os.path.exists) -> None:
+    """Stop before the display is put in EDL mode, not after."""
+    if (platform or sys.platform) == "darwin" and not any(exists(p) for p in MAC_LIBUSB):
+        raise UsbBackendMissing(LIBUSB_MISSING)
+
+
 class Edl:
     def __init__(self, ctx):
+        check_libusb()
         self.ctx = ctx
         root = next(Path(fetch("edl", ctx)).glob("edl-*"))
         self.script = root / "edl.py"

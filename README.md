@@ -44,12 +44,14 @@ at your own risk.
 | Clock | Wrong after DST rule changes | Current time zone data ([dashboard caveat](docs/TIMEZONES.md#dashboards-can-still-be-an-hour-off)) |
 | Brightness | Automatic | Automatic (light sensor) |
 | Screen off | Swipe from the left edge | Screensaver at brightness 0, tap to wake ([how](docs/SCREEN.md)) |
+| Size | Fixed | Kiosk Satellite's zoom and UI scale fit more on the screen ([how](docs/SIZE.md)) |
 | Updates | None | Kiosk Satellite updates itself |
 | Google | Everything | Off: Assistant, Cast, check-ins |
 
 ## What you need
 
-- The display, and a USB **data** cable for its hidden USB-C port (under the rubber cover, bottom right)
+- The display, and a USB **data** cable for its hidden USB-C port (under the rubber cover, bottom right). On a
+  Mac, use a USB-A to USB-C cable ([why](docs/MACOS.md#1-what-you-need))
 - A Windows, macOS or Linux computer with about 12 GB free
 - Home Assistant, ideally with a local voice pipeline
 - 20 to 30 minutes; most of it is waiting

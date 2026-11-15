@@ -60,6 +60,10 @@ def usb_access(dev_id: str) -> bool:
     return os.access(f"/dev/bus/usb/{int(bus):03d}/{int(addr):03d}", os.R_OK | os.W_OK)
 
 
+LIBUSB_MISSING = ("EDL needs libusb, which couldn't be loaded. Linux: install libusb-1.0. Mac: install "
+                  "Homebrew (brew.sh), then run: brew install libusb. See " + doc("docs/drivers.md") + ".")
+
+
 class UsbBackendMissing(Exception):
     """pyusb has no libusb backend. The message says how to fix it on this OS."""
 
@@ -80,9 +84,7 @@ def usb_scan_edl() -> list[str]:
                                   backend=_usb_backend()))
     except Exception as e:  # usb.core.NoBackendError and import errors
         if type(e).__name__ == "NoBackendError" or isinstance(e, ImportError):
-            raise UsbBackendMissing(
-                "EDL detection needs libusb, which couldn't be loaded. Linux: install libusb-1.0. "
-                "See " + doc("docs/drivers.md") + ".") from e
+            raise UsbBackendMissing(LIBUSB_MISSING) from e
         raise
     return [f"usb:{d.bus}-{d.address}" for d in devs]
 

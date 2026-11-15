@@ -16,10 +16,12 @@ verified boot in a few lines.
 ## 1. What you need
 
 - A **Lenovo Smart Display 8**: the label on the back says **SD-8501F**. Other models aren't supported.
-- A **USB data cable**. Many cheap cables only charge. One that has moved photos off a phone is a good sign.
+- A **USB-A to USB-C data cable**, plugged into a USB-A hub or adapter on the Mac. With a USB-C to USB-C
+  cable, the display may not show up once its new system starts. Many cheap cables only charge. One that has
+  moved photos off a phone is a good sign.
 - About **12 GB free** on the Mac.
-
-Nothing else to install.
+- **libusb**, for the backup. Install [Homebrew](https://brew.sh), then run `brew install libusb`. The tool
+  stops and says so if it's missing.
 
 ## 2. Download and unzip
 

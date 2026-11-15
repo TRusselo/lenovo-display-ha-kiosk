@@ -140,6 +140,7 @@ def test_ensure_root_rw_runs_root_and_remount(tmp_path, monkeypatch):
 
 def test_settings_wait_stops_with_a_message_when_the_user_types_stop(tmp_path, monkeypatch):
     monkeypatch.setattr(kiosk, "ensure_root_rw", lambda ctx: None)
+    monkeypatch.setattr(kiosk, "reconnect_wifi", lambda ctx: None)
     runner = FakeRunner({("-s", "S1", "shell", "cat", kiosk.PREFS): Result(0, "<map></map>")})
     ctx = make_ctx(tmp_path, runner)
     ctx.ui.answers = ["", "stop"]

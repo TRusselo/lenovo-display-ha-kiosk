@@ -19,7 +19,7 @@ import requests
 
 from lhk.ui import choose
 from lhk.apkcert import check as check_cert
-from lhk.system import adb, ensure_root_rw, shell, wifi_ip
+from lhk.system import CAST, adb, ensure_root_rw, reconnect_wifi, shell, wifi_ip
 from lhk.steps import Step
 
 PKG = "me.jxl.kiosk_satellite"
@@ -122,6 +122,33 @@ def fetch_apk(ctx) -> Path:
     return dest
 
 
+def _mb(n_bytes: int) -> int:
+    return -(-n_bytes // (1024 * 1024))
+
+
+def _free_mb(ctx) -> int | None:
+    """Free space on /data, or None when df's output can't be read."""
+    r = adb(ctx, "shell", "df", "-k", "/data", check=False)
+    lines = [l.split() for l in r.out.splitlines() if l.strip()]
+    if r.code != 0 or len(lines) < 2 or len(lines[-1]) < 4 or not lines[-1][3].isdigit():
+        return None
+    return int(lines[-1][3]) // 1024
+
+
+def _make_room(ctx, need_mb: int) -> None:
+    """Android needs about three times the APK's size free to install it. Cast's
+    leftover data is the usual reason there isn't."""
+    free = _free_mb(ctx)
+    if free is None or free >= need_mb:
+        return
+    ctx.ui.say(f"Only {free} MB free on the display; clearing Cast's leftover data to make room.")
+    shell(ctx, "pm", "clear", CAST, check=False)
+    free = _free_mb(ctx)
+    if free is not None and free < need_mb:
+        raise KioskError(f"Not enough room on the display to install Kiosk Satellite: {free} MB free, and "
+                         f"it needs about {need_mb} MB. Report this, with the log, in the forum thread.")
+
+
 class InstallStep(Step):
     name = "kiosk-install"
     title = "Install Kiosk Satellite"
@@ -131,6 +158,7 @@ class InstallStep(Step):
 
     def run(self, ctx) -> None:
         dest = fetch_apk(ctx)
+        _make_room(ctx, need_mb=3 * _mb(dest.stat().st_size))
         with ctx.ui.busy("Installing Kiosk Satellite"):
             adb(ctx, "install", "-r", "-g", str(dest), timeout=600)
 
@@ -197,6 +225,8 @@ class SettingsStep(Step):
         return _signed_in(xml) and _current(xml) == SETTINGS
 
     def run(self, ctx) -> None:
+        # Its setup signs in to Home Assistant, so the display has to be on Wi-Fi.
+        reconnect_wifi(ctx)
         # Nothing else opens it: without this the display stays on the Android Things settings.
         shell(ctx, "monkey", "-p", PKG, "-c", "android.intent.category.LAUNCHER", "1", check=False)
         ctx.ui.say("Kiosk Satellite is open on the display. Go through its setup there:\n"
