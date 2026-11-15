@@ -3,6 +3,7 @@ de-Google, mic gain."""
 from __future__ import annotations
 
 import re
+import subprocess
 import tempfile
 import time
 from pathlib import Path
@@ -13,6 +14,11 @@ from lhk.modes import Mode, MultipleDevices, detect
 from lhk.steps import Step
 
 MIXER_PATH = "/system/etc/mixer_paths_openq624_fep.xml"
+CAST = "com.google.android.apps.mediashell"
+NO_ADB = ("The display didn't show up over USB once Android started. If its screen shows four dots, the new "
+          "system is running and the USB connection is the problem. Try a USB-A to USB-C cable (on a Mac, "
+          "through a USB-A hub or adapter), flip the plug at the display end, or unplug the USB cable and plug "
+          "it back in. Then run the same command again.")
 NEVER_DISABLE = {"com.google.android.things.sparrow.oem",
                  "com.google.assistant.gallium.client.androidthingshost"}
 
@@ -63,7 +69,10 @@ def wait_booted(ctx, timeout=300, why="the display to start") -> None:
     if _booted(ctx):
         return
     with ctx.ui.busy(f"Waiting for {why}"):
-        adb(ctx, "wait-for-device", timeout=timeout)
+        try:
+            adb(ctx, "wait-for-device", timeout=timeout)
+        except subprocess.TimeoutExpired as e:
+            raise SetupFailed(NO_ADB) from e
         end = time.monotonic() + timeout
         while not _booted(ctx):
             if time.monotonic() > end:
@@ -156,6 +165,27 @@ def wifi_ip(ctx) -> str:
     return m.group(1) if m else ""
 
 
+def open_things_settings(ctx) -> None:
+    shell(ctx, "monkey", "-p", "com.android.iotlauncher", "-c", "android.intent.category.HOME", "1",
+          check=False)
+
+
+def reconnect_wifi(ctx, timeout=15 * 60) -> None:
+    """Kiosk Satellite's setup needs the display on Wi-Fi, and it can drop during the
+    long steps before it without coming back on its own. Silent when it's connected."""
+    if wifi_ip(ctx):
+        return
+    open_things_settings(ctx)
+    ctx.ui.say("The display has lost Wi-Fi. The Android Things settings are now on the display: open "
+               "Networks and connect to your Wi-Fi again.")
+    end = time.monotonic() + timeout
+    while not wifi_ip(ctx):
+        if time.monotonic() > end:
+            raise SetupFailed("The display didn't get back on Wi-Fi within 15 minutes.")
+        time.sleep(3)
+    ctx.ui.say("Wi-Fi connected.")
+
+
 class OpenThingsSettingsStep(Step):
     name = "things-settings"
     title = "Connect Wi-Fi and set the time zone on the display"
@@ -167,8 +197,7 @@ class OpenThingsSettingsStep(Step):
         return bool(self._ip(ctx))
 
     def _open(self, ctx) -> None:
-        shell(ctx, "monkey", "-p", "com.android.iotlauncher", "-c", "android.intent.category.HOME", "1",
-              check=False)
+        open_things_settings(ctx)
 
     def run(self, ctx) -> None:
         self._open(ctx)
@@ -229,6 +258,8 @@ class DegoogleStep(Step):
         for p in pkgs:
             if p not in already:
                 shell(ctx, "pm", "disable", p)
+        # Disabling leaves Cast's data behind: up to 850 MB, enough to leave no room for Kiosk Satellite.
+        shell(ctx, "pm", "clear", CAST, check=False)
 
 
 def _verify_pushed(ctx, expected: str) -> None:

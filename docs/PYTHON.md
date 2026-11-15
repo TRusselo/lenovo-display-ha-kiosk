@@ -8,7 +8,7 @@ Python, which needs to be 3.10 or newer.
 | System | How |
 |---|---|
 | **Windows** | Install from [python.org](https://www.python.org/downloads/windows/), and **tick "Add python.exe to PATH"**. Or run `winget install Python.Python.3.12`. |
-| **macOS** | Install from [python.org](https://www.python.org/downloads/macos/), or run `brew install python@3.12`. Apple's own `python3` (3.9, from the Command Line Tools) is too old. |
+| **macOS** | Install from [python.org](https://www.python.org/downloads/macos/), or run `brew install python@3.12`. Apple's own `python3` (3.9, from the Command Line Tools) is too old. Also run `brew install libusb`, for the backup. |
 | **Linux** | Use your distro's packages: `sudo apt install python3 python3-venv` (Debian/Ubuntu), `sudo dnf install python3` (Fedora) or `sudo pacman -S python` (Arch). |
 
 Check: `python3 --version` (or `py --version` on Windows) shows 3.10 or newer.

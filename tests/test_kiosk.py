@@ -35,6 +35,8 @@ def prefs_xml(nav="true", gain="15", mode="default", password=SECRET, signed_in=
 def no_root_dance(monkeypatch):
     # Root/remount are tested in test_review_fixes; here the device is already rooted.
     monkeypatch.setattr(kiosk, "ensure_root_rw", lambda ctx: None)
+    # Wi-Fi checks have their own tests in test_field_fixes; here the display is on Wi-Fi.
+    monkeypatch.setattr(kiosk, "reconnect_wifi", lambda ctx: None)
 
 
 def make_ctx(tmp_path, runner, **state):

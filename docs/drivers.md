@@ -54,5 +54,11 @@ sudo rm /etc/udev/rules.d/51-lhk.rules /etc/modprobe.d/lhk-no-qcserial.conf
 
 ## macOS
 
-Nothing to install: the tool brings its own copy of libusb for EDL. macOS support is untested on a real display
-so far.
+The backup and restore need libusb from Homebrew. Install [Homebrew](https://brew.sh), then run:
+
+```bash
+brew install libusb
+```
+
+No drivers are needed. Use a USB-A to USB-C cable through a USB-A hub or adapter: with a USB-C to USB-C cable,
+the display may not show up once its new system starts.

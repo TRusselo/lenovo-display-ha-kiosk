@@ -49,7 +49,8 @@ at your own risk.
 
 ## What you need
 
-- The display, and a USB **data** cable for its hidden USB-C port (under the rubber cover, bottom right)
+- The display, and a USB **data** cable for its hidden USB-C port (under the rubber cover, bottom right). On a
+  Mac, use a USB-A to USB-C cable ([why](docs/MACOS.md#1-what-you-need))
 - A Windows, macOS or Linux computer with about 12 GB free
 - Home Assistant, ideally with a local voice pipeline
 - 20 to 30 minutes; most of it is waiting
