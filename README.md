@@ -44,6 +44,7 @@ at your own risk.
 | Clock | Wrong after DST rule changes | Current time zone data ([dashboard caveat](docs/TIMEZONES.md#dashboards-can-still-be-an-hour-off)) |
 | Brightness | Automatic | Automatic (light sensor) |
 | Screen off | Swipe from the left edge | Screensaver at brightness 0, tap to wake ([how](docs/SCREEN.md)) |
+| Size | Fixed | Kiosk Satellite's zoom and UI scale fit more on the screen ([how](docs/SIZE.md)) |
 | Updates | None | Kiosk Satellite updates itself |
 | Google | Everything | Off: Assistant, Cast, check-ins |
 
