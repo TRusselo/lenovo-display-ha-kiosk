@@ -86,6 +86,7 @@ def wait_booted(ctx, timeout=300, why="the display to start") -> None:
         ctx.ui.physical(REPLUG if tries == 1 else REPLUG + " " + OTHER_PORT)
         if choose(ctx.ui, "Press Enter to try again, or type stop: ", "stop"):
             raise SetupFailed(NO_ADB)
+        ctx.ui.redraw()
     with ctx.ui.busy(f"Waiting for {why}"):
         end = time.monotonic() + timeout
         while not _booted(ctx):

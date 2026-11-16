@@ -73,6 +73,9 @@ class FakeUI:
     def status(self, text):
         self.statuses.append(text)
 
+    def redraw(self):
+        self.lines.append("[redraw]")
+
     def keep(self, text):
         self.lines.append(f"[keep] {text}")
 

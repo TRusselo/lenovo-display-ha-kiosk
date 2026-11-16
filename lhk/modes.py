@@ -169,6 +169,7 @@ def wait_for_mode(target: Mode, ctx, *, prompt: str, timeout: float, detect_fn=N
             ui.say("Found it. Let go of the buttons if you're still holding them.")
             return found[0][1]
         if mode not in (Mode.NONE, target, starting) and wrong_reported != mode:
+            ui.redraw()
             ui.say(f"The display is in {mode.value} mode, not {target.value}. "
                    "Unplug its power and try again:")
             ui.physical(prompt)
@@ -182,6 +183,7 @@ def wait_for_mode(target: Mode, ctx, *, prompt: str, timeout: float, detect_fn=N
                     else f"The display still isn't in {target.value} mode. ")
             if choose(ui, lead + RETRY_ASK, "stop"):
                 raise ModeTimeout(f"The display didn't reach {target.value} mode.")
+            ui.redraw()
             ui.physical(prompt)
             start, hinted, wrong_reported = clock(), False, None
         sleep(POLL_SECONDS)

@@ -43,7 +43,7 @@ CLEAR = "\x1b[H\x1b[2J\x1b[3J"     # the screen and the scrollback: no banner or
 TITLE = "Lenovo Smart Display 8 {to} Home Assistant"
 DEVICE = "Lenovo Smart Display 8"
 # Buttons and keys the user presses: bold wherever they're asked for.
-_BUTTONS = re.compile(r"\b(VOLUME UP|VOLUME DOWN|FINISH|Finish|Enter)\b")
+_BUTTONS = re.compile(r"\b(VOLUME UP|VOLUME DOWN|FINISH|Finish|Enter|[Ll]et go(?: of the buttons)?)\b")
 
 
 def _old_windows_console() -> bool:
@@ -66,6 +66,7 @@ class UI:
         self._listed = False
         self._intro = []      # stays on each screen until the user is first needed
         self._kept = []       # shown once more, on the next screen
+        self._last = None     # the last screen drawn, for redraw()
 
     def _symbols(self) -> dict:
         if self._sym is None and _old_windows_console():
@@ -110,6 +111,14 @@ class UI:
             return text
         return _BUTTONS.sub(lambda m: f"{_BOLD}{m.group(0)}{_RESET}{colour}", text)
 
+    def redraw(self) -> None:
+        """Draw the last screen again, clearing what was printed under it (a retry's old
+        box and hints). Without a terminal: nothing, the text just scrolls on."""
+        if self._live() and self._last:
+            self._end_status()
+            draw, args = self._last
+            draw(*args)
+
     def _users_turn(self) -> None:
         """The user has something to do: the opening note has been read by now."""
         self._intro = []
@@ -123,7 +132,7 @@ class UI:
     def say(self, text: str) -> None:
         self._end_status()
         if self._live():
-            text = self._wrap(text)
+            text = self._buttons(self._wrap(text))
         self.stdout.write(f"{text}\n")
         self.stdout.flush()
 
@@ -146,6 +155,7 @@ class UI:
             self.stdout.write(f"\n{text}\n\n")
             self.stdout.flush()
             return
+        self._last = (self.title, (text,))
         self.stdout.write(f"{CLEAR}\n  {self._paint(_TITLE, DEVICE)}\n  {self._paint(_NOW, text)}\n\n")
         self.stdout.flush()
 
@@ -178,6 +188,7 @@ class UI:
                 self.stdout.write(f"\nStep {current} of {total}: {titles[current - 1]}\n")
                 self.stdout.flush()
             return
+        self._last = (self.screen, (titles, current, done))
         sym = self._symbols()
         width = 32
         count = len(done)

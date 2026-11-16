@@ -261,6 +261,7 @@ def test_no_usb_asks_for_a_replug_then_carries_on(tmp_path, monkeypatch):
     system.wait_booted(ctx)
     replug = [l for l in ctx.ui.lines if l.startswith("[physical]")]
     assert replug and "USB cable" in replug[0] and "count to 3" in replug[0]
+    assert "[redraw]" in ctx.ui.lines
     assert sum(1 for c in runner.calls if c[3:4] == ["wait-for-device"]) == 2
 
 
@@ -423,3 +424,50 @@ def test_second_replug_suggests_a_usb_a_port_and_cable(tmp_path, monkeypatch):
     system.wait_booted(ctx)
     boxes = [l for l in ctx.ui.lines if l.startswith("[physical]")]
     assert "USB-A" not in boxes[0] and "USB-A" in boxes[1]
+
+
+# --- run 9 requests ------------------------------------------------------------------
+
+def test_redraw_repeats_the_last_screen(tty):
+    ui = UI(stdout=tty)
+    ui.screen(TITLES, 2, {1})
+    ui.say("Nothing yet.")
+    ui.redraw()
+    last = plain(tty.getvalue().split("\x1b[3J")[-1])
+    assert "▸ Unlock verified boot" in last and "Nothing yet." not in last
+
+
+def test_redraw_repeats_a_title_screen(tty):
+    ui = UI(stdout=tty)
+    ui.title("Restore the stock software")
+    ui.say("Nothing yet.")
+    ui.redraw()
+    last = plain(tty.getvalue().split("\x1b[3J")[-1])
+    assert "Restore the stock software" in last and "Nothing yet." not in last
+
+
+def test_redraw_without_a_terminal_does_nothing():
+    out = io.StringIO()
+    ui = UI(stdout=out)
+    ui.screen(TITLES, 1, set())
+    before = out.getvalue()
+    ui.redraw()
+    assert out.getvalue() == before
+
+
+def test_trying_again_redraws_before_the_new_box():
+    from lhk.modes import Mode, wait_for_mode
+    ui = FakeUI(answers=[""])
+    ui.redraw = lambda: ui.lines.append("[redraw]")
+    ctx = Context(runner=None, ui=ui, paths=Paths("."))
+    t = iter(range(0, 10000, 50))
+    seen = iter([[]] * 6 + [[(Mode.EDL, "usb:1")]])
+    wait_for_mode(Mode.EDL, ctx, prompt="p", timeout=180, detect_fn=lambda: next(seen),
+                  sleep=lambda s: None, clock=lambda: next(t))
+    i = ui.lines.index("[redraw]")
+    assert ui.lines[i + 1] == "[physical] p"
+
+
+def test_let_go_of_the_buttons_is_bold(tty):
+    UI(stdout=tty).say("Found it. Let go of the buttons if you're still holding them.")
+    assert re.search(r"\x1b\[1mLet go of the buttons", tty.getvalue())
