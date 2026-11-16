@@ -147,9 +147,14 @@ def unpack(ctx, archive: Path, dest_root: Path) -> Path:
     """Unpack a packed backup into dest_root/<name>, unless it's already there."""
     archive = Path(archive)
     dest = Path(dest_root) / archive.stem
-    if dest.exists() and not verify_backup(dest):
-        return dest
     with zipfile.ZipFile(archive) as z:
+        # Reuse an unpacked folder only if it came from this zip: same checksum list.
+        try:
+            same = (dest / "SHA256SUMS").read_bytes() == z.read("SHA256SUMS")
+        except (OSError, KeyError):
+            same = False
+        if same and not verify_backup(dest):
+            return dest
         names = z.infolist()
         for i in names:
             p = Path(i.filename)

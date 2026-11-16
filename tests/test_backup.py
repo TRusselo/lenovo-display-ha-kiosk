@@ -187,6 +187,20 @@ def test_unpack_skips_a_folder_already_unpacked(tmp_path, ctx, monkeypatch):
     bk.unpack(ctx, z, tmp_path / "restore")
 
 
+def test_unpack_doesnt_reuse_a_folder_from_a_different_zip_of_the_same_name(tmp_path, ctx):
+    # Run 9: restore/kiosk2 was left from an older kiosk2.zip, and was restored
+    # instead of the zip given.
+    old, new = tmp_path / "old" / "kiosk2", tmp_path / "new" / "kiosk2"
+    bk.backup(ctx, old, make_edl(tmp_path))
+    bk.backup(ctx, new, make_edl(tmp_path))
+    (new / "partitions" / "boot_a.bin").write_bytes(b"newer")
+    lines = [f"{bk._sha(f)}  {f.name}" for f in sorted((new / "partitions").glob("*.bin"))]
+    (new / "SHA256SUMS").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    bk.unpack(ctx, bk.pack(ctx, old), tmp_path / "restore")
+    got = bk.unpack(ctx, bk.pack(ctx, new), tmp_path / "restore")
+    assert (got / "partitions" / "boot_a.bin").read_bytes() == b"newer"
+
+
 def test_unpack_refuses_paths_outside_its_folder(tmp_path, ctx):
     import zipfile
     z = tmp_path / "evil.zip"
