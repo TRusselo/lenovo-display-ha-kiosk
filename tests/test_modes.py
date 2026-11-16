@@ -90,12 +90,15 @@ def test_dropout_then_return_succeeds():
     assert "none" in ui.statuses
 
 
-def test_times_out_when_the_user_types_stop():
-    ui = FakeUI(answers=["stop"])
-    t = iter(range(0, 1000, 1))
-    with pytest.raises(ModeTimeout):
-        wait_for_mode(Mode.FASTBOOT, ctx_with(ui), prompt="p", timeout=3,
-                      detect_fn=lambda: [], sleep=lambda s: None, clock=lambda: next(t))
+def test_a_long_wait_never_needs_an_answer():
+    # Run 9: the user was busy elsewhere; every timeout stopped setup until Enter.
+    ui = FakeUI()
+    t = iter(range(0, 10000))
+    seen = iter([[]] * 20 + [[(Mode.FASTBOOT, "S1")]])
+    serial = wait_for_mode(Mode.FASTBOOT, ctx_with(ui), prompt="p", timeout=3,
+                           detect_fn=lambda: next(seen), sleep=lambda s: None, clock=lambda: next(t))
+    assert serial == "S1"
+    assert not any(line.startswith("[ask]") for line in ui.lines)
 
 
 def test_readout_shows_mode_names():
@@ -152,15 +155,17 @@ def test_no_hint_before_20_seconds():
     assert not any("Lenovo logo" in line for line in ui.lines)
 
 
-def test_timeout_asks_to_try_again_and_keeps_waiting():
-    ui = FakeUI(answers=[""])
+def test_timeout_redraws_the_box_and_keeps_waiting():
+    ui = FakeUI()
     t = iter(range(0, 1000))
     seen = iter([[]] * 8 + [[(Mode.FASTBOOT, "S1")]])
     serial = wait_for_mode(Mode.FASTBOOT, ctx_with(ui), prompt="p", timeout=5,
                            detect_fn=lambda: next(seen), sleep=lambda s: None, clock=lambda: next(t))
     assert serial == "S1"
-    assert any(line.startswith("[ask]") and "try again" in line for line in ui.lines)
     assert ui.lines.count("[physical] p") == 2
+    i = ui.lines.index("[redraw]")
+    assert ui.lines[i + 1] == "[physical] p"
+    assert any("Ctrl-C" in line for line in ui.lines)
 
 
 def test_a_tool_that_cannot_run_is_reported_not_shown_as_no_device(tmp_path):
@@ -193,13 +198,13 @@ def test_already_in_the_mode_skips_the_button_prompt():
 
 
 def test_timeout_after_the_wrong_mode_doesnt_say_nothing():
-    ui = FakeUI(answers=["stop"])
+    ui = FakeUI()
     t = iter(range(0, 1000))
-    with pytest.raises(ModeTimeout):
-        wait_for_mode(Mode.FASTBOOT, ctx_with(ui), prompt="p", timeout=3,
-                      detect_fn=lambda: [(Mode.EDL, "usb")], sleep=lambda s: None, clock=lambda: next(t))
-    asks = [line for line in ui.lines if line.startswith("[ask]")]
-    assert asks and "still isn't in FASTBOOT" in asks[0] and "nothing" not in asks[0].lower()
+    seen = iter([[(Mode.EDL, "usb")]] * 8 + [[(Mode.FASTBOOT, "S1")]])
+    wait_for_mode(Mode.FASTBOOT, ctx_with(ui), prompt="p", timeout=3,
+                  detect_fn=lambda: next(seen), sleep=lambda s: None, clock=lambda: next(t))
+    said = [line for line in ui.lines if "still isn't in FASTBOOT" in line]
+    assert said and "nothing" not in said[0].lower()
 
 
 def test_the_mode_it_starts_in_is_not_a_wrong_attempt():

@@ -457,7 +457,7 @@ def test_redraw_without_a_terminal_does_nothing():
 
 def test_trying_again_redraws_before_the_new_box():
     from lhk.modes import Mode, wait_for_mode
-    ui = FakeUI(answers=[""])
+    ui = FakeUI()
     ui.redraw = lambda: ui.lines.append("[redraw]")
     ctx = Context(runner=None, ui=ui, paths=Paths("."))
     t = iter(range(0, 10000, 50))

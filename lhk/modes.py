@@ -12,7 +12,6 @@ from pathlib import Path
 import time
 from enum import Enum
 
-from lhk.ui import choose
 from lhk import doc
 from lhk.runner import CommandFailed
 
@@ -22,7 +21,6 @@ HINT_AFTER = 20
 NOTHING_HINT = ("Nothing yet. If the screen shows the Lenovo logo, the display is starting normally: "
                 "the buttons weren't held as it powered on. If it stays blank, it didn't take either. "
                 "Unplug its power and try again, holding the buttons before you plug it in.")
-RETRY_ASK = "Press Enter to try again, or type stop: "
 
 
 class Mode(Enum):
@@ -179,11 +177,12 @@ def wait_for_mode(target: Mode, ctx, *, prompt: str, timeout: float, detect_fn=N
             ui.say(NOTHING_HINT)
             hinted = True
         if elapsed > timeout:
-            lead = ("Still nothing. " if mode == Mode.NONE
+            # Run 9: no question to answer. The user may be busy elsewhere, and the
+            # display is found by itself whenever they get to it.
+            lead = ("Still waiting. " if mode == Mode.NONE
                     else f"The display still isn't in {target.value} mode. ")
-            if choose(ui, lead + RETRY_ASK, "stop"):
-                raise ModeTimeout(f"The display didn't reach {target.value} mode.")
             ui.redraw()
             ui.physical(prompt)
-            start, hinted, wrong_reported = clock(), False, None
+            ui.say(lead + "Do the steps above whenever you're ready, or press Ctrl-C to stop.")
+            start, hinted, wrong_reported, last_status = clock(), False, None, None
         sleep(POLL_SECONDS)
