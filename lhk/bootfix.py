@@ -10,7 +10,6 @@ from __future__ import annotations
 import time
 from pathlib import Path
 
-from lhk.ui import choose
 from lhk import doc
 from lhk.downloads import _repo_file
 from lhk.steps import Step
@@ -94,12 +93,11 @@ def check_buttons(ctx, wait: float = 60) -> None:
             ctx.ui.physical(f"Press {name} on the display once.")
             if _pressed(ctx, before, sign, wait):
                 break
-            if choose(ctx.ui, f"The volume didn't change after {name}. Press Enter to try again, "
-                              "or type skip: ", "skip"):
-                ctx.ui.say("Button check skipped. The volume fix is installed and running; if the "
-                           "buttons don't change the volume later, see "
-                           + doc("devices/amber/README.md", "step 14") + ".")
-                return
+            # Run 9: no question to answer; the press is found whenever it comes.
+            ctx.ui.redraw()
+            ctx.ui.say(f"Still waiting for {name}. If the button doesn't change the volume, press Ctrl-C "
+                       "and run the same command again: setup goes on without this check, and "
+                       + doc("devices/amber/README.md", "step 14") + " says what to look at.")
     ctx.ui.say("Volume buttons work.")
 
 

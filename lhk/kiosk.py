@@ -229,7 +229,7 @@ class SettingsStep(Step):
         reconnect_wifi(ctx)
         # Nothing else opens it: without this the display stays on the Android Things settings.
         shell(ctx, "monkey", "-p", PKG, "-c", "android.intent.category.LAUNCHER", "1", check=False)
-        ctx.ui.say("Kiosk Satellite is open on the display. Go through its 5 setup pages there:\n"
+        ctx.ui.physical("Kiosk Satellite is open. Go through its 5 setup pages:\n"
                    "  1. A name, and an admin password for its remote admin\n"
                    "  2. Your Home Assistant address, and a sign-in or a long-lived access token\n"
                    "  3. The dashboard to show\n"

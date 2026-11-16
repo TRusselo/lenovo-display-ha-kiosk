@@ -147,30 +147,31 @@ def test_buttons_warn_before_asking_for_presses(tmp_path, monkeypatch):
     assert any(l.startswith("[alert]") and "NOT DONE" in l for l in ctx.ui.lines[:first_press])
 
 
-def test_buttons_timeout_asks_to_try_again_instead_of_stopping(tmp_path, monkeypatch):
-    # A rerun after a failed press test skips the whole step (its files are
-    # in place), so a timeout must be handled here, not by stopping.
+def test_buttons_wait_without_asking(tmp_path, monkeypatch):
+    # Run 9: the user was busy elsewhere, and each 60 s timeout held setup until
+    # Enter. The check now just keeps waiting for the press.
     monkeypatch.undo()
     monkeypatch.setattr(bootfix.time, "sleep", lambda s: None)
     clock = iter(range(0, 10_000, 30))
     monkeypatch.setattr(bootfix.time, "monotonic", lambda: next(clock))
     ctx = make_ctx(tmp_path, _volume_runner([40, 40, 40, 40, 40, 45, 45, 40]))
-    ctx.ui.answers = [""]
     bootfix.check_buttons(ctx)
-    asks = [l for l in ctx.ui.lines if l.startswith("[ask]")]
-    assert len(asks) == 1 and "try again" in asks[0] and "skip" in asks[0]
+    assert not any(l.startswith("[ask]") for l in ctx.ui.lines)
     assert ctx.ui.lines[-1] == "Volume buttons work."
 
 
-def test_buttons_skip_says_how_to_check_later(tmp_path, monkeypatch):
+def test_buttons_reminder_says_how_to_go_on_without_the_check(tmp_path, monkeypatch):
+    # A rerun skips the whole step (its files are in place), so Ctrl-C and the
+    # same command again goes on without the check.
     monkeypatch.undo()
     monkeypatch.setattr(bootfix.time, "sleep", lambda s: None)
     clock = iter(range(0, 10_000, 30))
     monkeypatch.setattr(bootfix.time, "monotonic", lambda: next(clock))
-    ctx = make_ctx(tmp_path, _volume_runner([40]))
-    ctx.ui.answers = ["skip"]
+    ctx = make_ctx(tmp_path, _volume_runner([40, 40, 40, 40, 40, 45, 45, 40]))
     bootfix.check_buttons(ctx)
-    assert "skipped" in ctx.ui.lines[-1].lower()
+    reminder = next(l for l in ctx.ui.lines if "Ctrl-C" in l)
+    assert "same command" in reminder and "step 14" in reminder
+    assert "[redraw]" in ctx.ui.lines
 
 
 def test_rerun_after_a_failed_press_test_skips_the_step(tmp_path):

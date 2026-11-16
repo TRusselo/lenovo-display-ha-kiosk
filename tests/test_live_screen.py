@@ -471,3 +471,15 @@ def test_trying_again_redraws_before_the_new_box():
 def test_let_go_of_the_buttons_is_bold(tty):
     UI(stdout=tty).say("Found it. Let go of the buttons if you're still holding them.")
     assert re.search(r"\x1b\[1mLet go of the buttons", tty.getvalue())
+
+
+def test_kiosk_satellite_setup_pages_are_a_display_box(tmp_path, monkeypatch):
+    from lhk import kiosk
+    monkeypatch.setattr(kiosk, "ensure_root_rw", lambda ctx: None)
+    monkeypatch.setattr(kiosk, "reconnect_wifi", lambda ctx: None)
+    monkeypatch.setattr(kiosk, "wifi_ip", lambda ctx: "")
+    ctx = sys_ctx(tmp_path, FakeRunner(), ["stop"])
+    with pytest.raises(kiosk.KioskError):
+        kiosk.SettingsStep().run(ctx)
+    box = next(l for l in ctx.ui.lines if l.startswith("[physical]"))
+    assert "admin password" in box and "Finish" in box
