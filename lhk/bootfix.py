@@ -91,7 +91,7 @@ def check_buttons(ctx, wait: float = 60) -> None:
     for name, sign in (("VOLUME UP", 1), ("VOLUME DOWN", -1)):
         while True:
             before = _volume(ctx)
-            ctx.ui.say(f"Press {name} on the display once.")
+            ctx.ui.physical(f"Press {name} on the display once.")
             if _pressed(ctx, before, sign, wait):
                 break
             if choose(ctx.ui, f"The volume didn't change after {name}. Press Enter to try again, "

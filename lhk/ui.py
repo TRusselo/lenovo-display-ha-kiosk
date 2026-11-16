@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import contextlib
 import os
+import re
 import shutil
 import sys
 import textwrap
@@ -40,6 +41,9 @@ _BOLD, _PURPLE, _TITLE, _YELLOW, _RED, _CYAN, _NOW, _DIM, _RESET = (
     "\x1b[1;38;5;80m", "\x1b[38;5;248m", "\x1b[0m")    # "dim" is a light grey: the terminal's own dim is unreadable on black
 CLEAR = "\x1b[H\x1b[2J\x1b[3J"     # the screen and the scrollback: no banner or old screens above
 TITLE = "Lenovo Smart Display 8 {to} Home Assistant"
+DEVICE = "Lenovo Smart Display 8"
+# Buttons and keys the user presses: bold wherever they're asked for.
+_BUTTONS = re.compile(r"\b(VOLUME UP|VOLUME DOWN|FINISH|Finish|Enter)\b")
 
 
 def _old_windows_console() -> bool:
@@ -60,7 +64,8 @@ class UI:
         self._sym = None
         self._col = None
         self._listed = False
-        self._intro = []
+        self._intro = []      # stays on each screen until the user is first needed
+        self._kept = []       # shown once more, on the next screen
 
     def _symbols(self) -> dict:
         if self._sym is None and _old_windows_console():
@@ -83,16 +88,37 @@ class UI:
             self._status_shown = False
 
     def _wrap(self, text: str, indent: str = "  ") -> str:
-        """Indented to line up with the screen; long lines wrapped. Lines already laid out
-        (starting with a space, such as a numbered list or an address) only get the indent."""
-        width = max(min(shutil.get_terminal_size((80, 24)).columns, 100) - len(indent), 20)
+        """Indented to line up with the screen, long lines wrapped. A line's own indent is kept,
+        and a numbered item's next lines line up under its text."""
+        columns = min(shutil.get_terminal_size((80, 24)).columns, 100)
         out = []
         for line in text.split("\n"):
-            if line.startswith(" ") or not line:
-                out.append(indent + line)
-            else:
-                out += [indent + l for l in textwrap.wrap(line, width)]
+            if not line.strip():
+                out.append(indent.rstrip() if not line else indent + line)
+                continue
+            lead = line[:len(line) - len(line.lstrip())]
+            item = re.match(r"\d+\. ", line.lstrip())
+            hang = indent + lead + (" " * len(item.group(0)) if item else "")
+            # Never split a path or a link: they have to stay copyable and clickable.
+            out += textwrap.wrap(line.lstrip(), max(columns - len(hang), 20), initial_indent=indent + lead,
+                                 subsequent_indent=hang, break_on_hyphens=False, break_long_words=False)
         return "\n".join(out)
+
+    def _buttons(self, text: str, colour: str = "") -> str:
+        """Buttons and keys to press in bold, then back to the surrounding colour."""
+        if not self._colour():
+            return text
+        return _BUTTONS.sub(lambda m: f"{_BOLD}{m.group(0)}{_RESET}{colour}", text)
+
+    def _users_turn(self) -> None:
+        """The user has something to do: the opening note has been read by now."""
+        self._intro = []
+
+    def keep(self, text: str) -> None:
+        """Say it now, and again on the next screen, so a redraw doesn't hide it."""
+        self.say(text)
+        if self._live():
+            self._kept.append(text)
 
     def say(self, text: str) -> None:
         self._end_status()
@@ -104,11 +130,10 @@ class UI:
     def physical(self, text: str) -> None:
         """Something to do with your hands, at the display."""
         self._end_status()
+        self._users_turn()
         if self._colour():
             head = self._paint(_YELLOW, f"{self._symbols()['arrow']} On the display")
-            width = min(shutil.get_terminal_size((80, 24)).columns, 100) - 4
-            body = "\n".join("    " + l for l in textwrap.wrap(text, max(width, 20)))
-            self.stdout.write(f"\n  {head}\n{body}\n")
+            self.stdout.write(f"\n  {head}\n{self._buttons(self._wrap(text, '    '))}\n")
         else:
             bar = "=" * 72
             self.stdout.write(f"\n{bar}\n  DO THIS ON THE DISPLAY:\n  {text}\n{bar}\n")
@@ -121,8 +146,7 @@ class UI:
             self.stdout.write(f"\n{text}\n\n")
             self.stdout.flush()
             return
-        head = TITLE.format(to=self._symbols()["to"])
-        self.stdout.write(f"{CLEAR}\n  {self._paint(_TITLE, head)}\n  {self._paint(_NOW, text)}\n\n")
+        self.stdout.write(f"{CLEAR}\n  {self._paint(_TITLE, DEVICE)}\n  {self._paint(_NOW, text)}\n\n")
         self.stdout.flush()
 
     def _bar(self, fraction: float, width: int = 12) -> str:
@@ -169,10 +193,9 @@ class UI:
             else:
                 out.append("  " + self._paint(_DIM, f"{sym['todo']} {t}") + "\n")
         out.append("\n")
-        width = min(shutil.get_terminal_size((80, 24)).columns, 100) - 2
-        for text in self._intro:
-            out.append("\n".join("  " + l for l in textwrap.wrap(text, max(width, 20))) + "\n\n")
-        self._intro = []
+        for text in self._intro + self._kept:
+            out.append(self._wrap(text) + "\n\n")
+        self._kept = []
         self.stdout.write("".join(out))
         self.stdout.flush()
 
@@ -229,7 +252,7 @@ class UI:
         Callers write it in capitals, so it stands out without colour too."""
         self._end_status()
         if self._live():
-            self.stdout.write(f"\n{self._paint(_YELLOW, self._wrap(text))}\n")
+            self.stdout.write(f"\n{_YELLOW}{self._buttons(self._wrap(text), _YELLOW)}{_RESET}\n")
         elif self._colour():
             self.stdout.write(f"\n\x1b[1;33m{text}\x1b[0m\n")
         else:
@@ -325,9 +348,10 @@ class UI:
 
     def ask(self, text: str) -> str:
         self._end_status()
+        self._users_turn()
         if self._live():
-            # Your turn: yellow, like the boxes.
-            text = self._paint(_YELLOW, "  " + text.rstrip(" ")) + " "
+            # Your turn: yellow, like the boxes, wrapped to the terminal.
+            text = f"{_YELLOW}{self._buttons(self._wrap(text.rstrip(' ')), _YELLOW)}{_RESET} "
         self.stdout.write(text)
         self.stdout.flush()
         line = self.stdin.readline()

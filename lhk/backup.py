@@ -74,7 +74,7 @@ def backup(ctx, out: Path, edl) -> None:
         raise BackupMismatch(f"Backup incomplete, still missing: {', '.join(left)}. Run again to continue.")
     lines = [f"{_sha(f)}  {f.name}" for f in sorted(parts.glob("*.bin"))]
     (Path(out) / "SHA256SUMS").write_text("\n".join(lines) + "\n", encoding="utf-8")
-    ctx.ui.say(f"Backup complete: {out}. Keep it private: it holds data unique to this display.")
+    ctx.ui.keep(f"Backup complete: {out}. Keep it private: it holds data unique to this display.")
 
 
 def _require_same_display(edl, parts: Path, message: str) -> None:

@@ -58,7 +58,7 @@ class BackupStep(Step):
         backup.backup(ctx, out, Edl(ctx))
         ctx.state["backup_this_run"] = True
         z = backup.pack(ctx, out)
-        ctx.ui.say(f"The backup is also saved as one file: {z}. It's named after --name (display, if "
+        ctx.ui.keep(f"The backup is also saved as one file: {z}. It's named after --name (display, if "
                    "you didn't give one). Copy it somewhere safe and keep it private. lhk restore takes "
                    "this file or the folder.")
 

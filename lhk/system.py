@@ -20,6 +20,8 @@ CAST = "com.google.android.apps.mediashell"
 # for 9 minutes or more, until its USB cable is unplugged and plugged back in.
 REPLUG = ("The display hasn't shown up over USB. Unplug the USB cable from the display, count to 3, and plug "
           "it back in. Leave the power plugged in. The four dots can keep spinning even when it's ready.")
+OTHER_PORT = ("Still nothing? Try a USB-A port on the computer, with a USB-A to USB-C cable (through a hub "
+              "or adapter if the computer has no USB-A ports).")
 NO_ADB = ("Stopped waiting for the display to show up over USB. Unplug its USB cable, count to 3, plug it back "
           "in, and run the same command again. If it never shows up, try another cable (a USB-A to USB-C "
           "one), or flip the plug at the display end.")
@@ -72,14 +74,16 @@ def wait_booted(ctx, timeout=300, why="the display to start") -> None:
     """Wait until Android has finished starting. Silent when it already has."""
     if _booted(ctx):
         return
+    tries = 0
     while True:
-        with ctx.ui.busy(f"Waiting for {why}") as job:
+        with ctx.ui.busy("Waiting for the display on USB") as job:
             try:
                 adb(ctx, "wait-for-device", timeout=timeout)
                 break
             except subprocess.TimeoutExpired:
                 job.pause("Not on USB yet")
-        ctx.ui.physical(REPLUG)
+        tries += 1
+        ctx.ui.physical(REPLUG if tries == 1 else REPLUG + " " + OTHER_PORT)
         if choose(ctx.ui, "Press Enter to try again, or type stop: ", "stop"):
             raise SetupFailed(NO_ADB)
     with ctx.ui.busy(f"Waiting for {why}"):
@@ -211,11 +215,11 @@ class OpenThingsSettingsStep(Step):
 
     def run(self, ctx) -> None:
         self._open(ctx)
-        ctx.ui.say("The Android Things settings are now on the display. On the display:\n"
-                   "  1. Menu (☰) > System > Date & time: pick your time zone. If yours isn't in the\n"
-                   "     list, pick any; you can type the right one here afterwards.\n"
-                   "  2. Networks: pick your Wi-Fi and type its password on the on-screen keyboard.\n"
-                   "  Don't press Check for update or Factory data reset on that page.")
+        ctx.ui.physical("The Android Things settings are open:\n"
+                        "  1. Menu (☰) > System > Date & time: pick your time zone. If yours isn't in the "
+                        "list, pick any: you can type the right one here afterwards.\n"
+                        "  2. Networks: pick your Wi-Fi and type its password on the on-screen keyboard.\n"
+                        "Don't press Check for update or Factory data reset on that page.")
         end = time.monotonic() + 15 * 60
         while not self._ip(ctx):
             if time.monotonic() > end:
@@ -243,7 +247,7 @@ class OpenThingsSettingsStep(Step):
                 break
             ctx.ui.say(f"{zone} isn't a time zone name. Names look like America/Edmonton or Europe/Berlin.")
         shell(ctx, "setprop", "persist.sys.timezone", zone)
-        ctx.ui.say(f"Time zone set to {zone}. It takes effect when the display restarts, which this tool "
+        ctx.ui.keep(f"Time zone set to {zone}. It takes effect when the display restarts, which this tool "
                    "does near the end. Don't pick a zone in the list again, or it replaces this one.")
 
 

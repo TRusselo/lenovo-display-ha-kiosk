@@ -60,5 +60,5 @@ The backup and restore need libusb from Homebrew. Install [Homebrew](https://bre
 brew install libusb
 ```
 
-No drivers are needed. Use a USB-A to USB-C cable through a USB-A hub or adapter: with a USB-C to USB-C cable,
-the display may not show up once its new system starts.
+No drivers are needed. If the display doesn't show up on USB, see
+[the guide](GUIDE.md#if-the-display-doesnt-show-up-on-usb).

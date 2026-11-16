@@ -73,6 +73,9 @@ class FakeUI:
     def status(self, text):
         self.statuses.append(text)
 
+    def keep(self, text):
+        self.lines.append(f"[keep] {text}")
+
     def title(self, text):
         self.lines.append(f"[title] {text}")
 

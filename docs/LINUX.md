@@ -10,6 +10,7 @@ verified boot in a few lines.
 
 - A **Lenovo Smart Display 8**: the label on the back says **SD-8501F**. Other models aren't supported.
 - A **USB data cable**. Many cheap cables only charge. One that has moved photos off a phone is a good sign.
+  If the display doesn't show up on USB, see [the guide](GUIDE.md#if-the-display-doesnt-show-up-on-usb).
 - About **12 GB free**.
 
 ## 2. Download and unzip

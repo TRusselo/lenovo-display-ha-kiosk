@@ -48,6 +48,18 @@ New to this? [Words you'll see](../README.md#words-youll-see) explains the terms
   tool shows the address at the end.
 - To go back to Google's software: `lhk restore`, explained under "How it works" in the [README](../README.md#how-it-works).
 
+## If the display doesn't show up on USB
+
+On any computer: after the flash, the display can stay off USB until its USB cable is unplugged and plugged
+back in. The tool asks you to do that when it's needed:
+
+1. Unplug the USB cable from the display, count to 3, and plug it back in. Leave the power plugged in.
+2. Still nothing? Try a USB-A port on the computer, with a USB-A to USB-C cable. A computer with no USB-A
+   ports, such as most Macs, needs a USB-A hub or adapter for that.
+3. Or flip the plug at the display end.
+
+The four dots on the display can keep spinning even when it's ready, so they don't mean it's stuck.
+
 ## Problems or questions
 
 Ask in the [Home Assistant Community thread](https://community.home-assistant.io/t/lenovo-smart-display-8-as-a-de-googled-ha-dashboard-running-kiosk-satellite-w-assist-working-testers-wanted/1033810) or the [XDA thread](https://xdaforums.com/t/lenovo-smart-display-8-home-assistant-kiosk-satellite.4808181/) (no GitHub account needed), or [open an issue](../../../issues). Say which computer you used, how far it got, and copy the last lines the tool printed.

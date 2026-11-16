@@ -34,7 +34,9 @@ What changed for people converting a display. Newest first.
   Its screen light entity can't turn the screen off on these displays.
 - [Dashboards can still be an hour off](docs/TIMEZONES.md#dashboards-can-still-be-an-hour-off): the built-in
   browser uses its own old time zone rules. The fix is to format times in Home Assistant.
-- Mac guide: use a USB-A to USB-C cable and install libusb with Homebrew. What to do when macOS blocks the program, and that one display has been converted on a Mac by
+- [If the display doesn't show up on USB](docs/GUIDE.md#if-the-display-doesnt-show-up-on-usb), on any
+  computer: replug the USB cable first, then try a USB-A port and cable.
+- Mac guide: install libusb with Homebrew. What to do when macOS blocks the program, and that one display has been converted on a Mac by
   running from source.
 - Windows guide: what to do if antivirus removes the program, and how to check the download against the
   release checksums.

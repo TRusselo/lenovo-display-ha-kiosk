@@ -44,6 +44,8 @@ with ui.busy("Backing up the display") as job:
     job.done("Backed up 55 partitions")
 with ui.busy("Packing the backup into one file, kiosk2.zip"):
     pause(1)
+ui.keep("The backup is also saved as one file: /home/someone/lhk-workdir/lenovo-display/backup/kiosk2.zip. "
+        "Copy it somewhere safe and keep it private.")
 done.add(3)
 
 ui.screen(titles, 6, done | {4, 5})
@@ -53,9 +55,33 @@ with ui.busy("Waiting for the new system's first start") as job:
 ui.physical("The display hasn't shown up over USB. Unplug the USB cable from the display, count to 3, and "
             "plug it back in. Leave the power plugged in. The four dots can keep spinning even when it's ready.")
 ui.ask("Press Enter to try again, or type stop: ")
+with ui.busy("Waiting for the display on USB"):
+    pause(1)
 with ui.busy("Waiting for the new system's first start"):
     pause(1.5)
-done |= {4, 5, 6}
+done |= {4, 5, 6, 7}
+
+ui.screen(titles, 8, done)
+ui.physical("The Android Things settings are open:\n"
+            "  1. Menu (☰) > System > Date & time: pick your time zone. If yours isn't in the "
+            "list, pick any: you can type the right one here afterwards.\n"
+            "  2. Networks: pick your Wi-Fi and type its password on the on-screen keyboard.\n"
+            "Don't press Check for update or Factory data reset on that page.")
+pause(1.5)
+ui.say("Wi-Fi connected.")
+ui.ask("The display's time zone is GMT. If your zone wasn't in the list, type its name (for example "
+       "America/Edmonton), or press Enter to keep it: ")
+ui.keep("Time zone set to America/Edmonton. It takes effect when the display restarts, which this tool does "
+        "near the end. Don't pick a zone in the list again, or it replaces this one.")
+done.add(8)
+
+ui.screen(titles, 14, done | set(range(9, 14)))
+ui.alert("NOT DONE YET! THIS TOOL NEEDS YOU TO PRESS THE VOLUME BUTTONS ON THE DISPLAY.")
+ui.physical("Press VOLUME UP on the display once.")
+pause(1.5)
+ui.physical("Press VOLUME DOWN on the display once.")
+pause(1.5)
+ui.say("Volume buttons work.")
 
 ui.screen(titles, len(titles) + 1, set(range(1, len(titles) + 1)))
 ui.ok("All done. The display is a Home Assistant kiosk.")

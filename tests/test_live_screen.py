@@ -322,3 +322,104 @@ def test_restore_starts_with_a_title_screen(tmp_path, monkeypatch):
     monkeypatch.setattr(cli.backup, "verify_backup", lambda d: ["stop here"])
     cli.main(["restore", str(tmp_path / "bk"), "--workdir", str(tmp_path)])
     assert ui.lines[0].startswith("[title] ")
+
+
+# --- run 8 findings ----------------------------------------------------------------
+
+def test_wrapping_never_splits_a_path_or_link(tty, monkeypatch):
+    import os
+    import shutil
+    monkeypatch.setattr(shutil, "get_terminal_size", lambda fallback=(80, 24): os.terminal_size((60, 24)))
+    ui = UI(stdout=tty)
+    ui.screen(TITLES, 1, set())
+    path = "/home/someone/git/lenovo-smart-display-assist/amber/e2e-run8-ux/backup/kiosk2.zip"
+    url = "https://github.com/TRusselo/lenovo-display-ha-kiosk/blob/main/docs/SIZE.md"
+    ui.alert(f"SAVE YOUR BACKUP: copy {path} somewhere safe.")
+    ui.section("What's next", [f"Fit more on the screen: {url}"])
+    shown = plain(tty.getvalue())
+    assert path in shown and url in shown
+
+
+def test_a_kept_message_survives_the_next_redraw(tty):
+    ui = UI(stdout=tty)
+    ui.screen(TITLES, 1, set())
+    ui.keep("Time zone set to America/Edmonton. Don't pick a zone in the list again.")
+    ui.screen(TITLES, 2, {1})
+    after = plain(tty.getvalue().split("\x1b[3J")[-1])
+    assert "Don't pick a zone in the list again" in after
+
+
+def test_the_opening_note_stays_until_the_user_is_needed(tty):
+    ui = UI(stdout=tty)
+    ui.intro("Setup takes 20 to 30 minutes and needs 12 GB free.")
+    ui.screen(TITLES, 1, set())
+    ui.screen(TITLES, 2, {1})
+    assert "12 GB" in plain(tty.getvalue().split("\x1b[3J")[-1])
+    ui.physical("Hold VOLUME DOWN.")
+    ui.screen(TITLES, 3, {1, 2})
+    assert "12 GB" not in plain(tty.getvalue().split("\x1b[3J")[-1])
+
+
+def test_buttons_to_press_are_bold(tty):
+    UI(stdout=tty).physical("Hold VOLUME UP and VOLUME DOWN together, then press Enter.")
+    text = tty.getvalue()
+    assert re.search(r"\x1b\[[0-9;]*1[0-9;]*mVOLUME UP", text)
+    assert re.search(r"\x1b\[[0-9;]*1[0-9;]*mVOLUME DOWN", text)
+    assert re.search(r"\x1b\[[0-9;]*1[0-9;]*mEnter", text)
+
+
+def test_a_long_question_wraps(tty, monkeypatch):
+    import os
+    import shutil
+    monkeypatch.setattr(shutil, "get_terminal_size", lambda fallback=(80, 24): os.terminal_size((50, 24)))
+    tty.readline = lambda: "\n"
+    ui = UI(stdin=tty, stdout=tty)
+    ui.ask("The display's time zone is GMT. If your zone wasn't in the list, type its name "
+           "(for example America/Edmonton), or press Enter to keep it: ")
+    for line in plain(tty.getvalue()).splitlines():
+        assert len(line) <= 50
+
+
+def test_restore_title_doesnt_say_home_assistant(tty):
+    UI(stdout=tty).title("Restore the stock software")
+    assert "Home Assistant" not in plain(tty.getvalue())
+
+
+def test_the_two_waits_have_different_names(tmp_path, monkeypatch):
+    monkeypatch.setattr(system.time, "sleep", lambda s: None)
+    runner = FakeRunner({BOOTED: [Result(1, ""), Result(1, ""), Result(0, "1\n")], WAIT: Result(0, "")})
+    ctx = sys_ctx(tmp_path, runner, [])
+    system.wait_booted(ctx, why="the new system's first start")
+    waits = [l for l in ctx.ui.lines if l.startswith("[busy]")]
+    assert len(waits) == len(set(waits)) == 2
+
+
+def test_wifi_and_time_zone_instructions_are_a_display_box(tmp_path, monkeypatch):
+    monkeypatch.setattr(system.time, "sleep", lambda s: None)
+    runner = FakeRunner({("-s", "S1", "shell", "ip", "-4", "addr", "show", "wlan0"):
+                         Result(0, "    inet 10.0.0.5/24 brd 10.0.0.255 scope global wlan0\n")})
+    ctx = sys_ctx(tmp_path, runner, [""])
+    system.OpenThingsSettingsStep().run(ctx)
+    box = next(l for l in ctx.ui.lines if l.startswith("[physical]"))
+    assert "Date & time" in box and "Networks" in box
+
+
+def test_volume_buttons_are_asked_for_in_display_boxes(tmp_path, monkeypatch):
+    from lhk import bootfix
+    vols = iter([0, 5, 5, 0])
+    monkeypatch.setattr(bootfix, "_volume", lambda ctx: next(vols))
+    monkeypatch.setattr(bootfix.time, "sleep", lambda s: None)
+    ctx = sys_ctx(tmp_path, FakeRunner(), [])
+    bootfix.check_buttons(ctx)
+    boxes = [l for l in ctx.ui.lines if l.startswith("[physical]")]
+    assert any("VOLUME UP" in b for b in boxes) and any("VOLUME DOWN" in b for b in boxes)
+
+
+def test_second_replug_suggests_a_usb_a_port_and_cable(tmp_path, monkeypatch):
+    monkeypatch.setattr(system.time, "sleep", lambda s: None)
+    t = subprocess.TimeoutExpired("adb", 300)
+    runner = FakeRunner({BOOTED: [Result(1, ""), Result(0, "1\n")], WAIT: [t, t, Result(0, "")]})
+    ctx = sys_ctx(tmp_path, runner, ["", ""])
+    system.wait_booted(ctx)
+    boxes = [l for l in ctx.ui.lines if l.startswith("[physical]")]
+    assert "USB-A" not in boxes[0] and "USB-A" in boxes[1]
