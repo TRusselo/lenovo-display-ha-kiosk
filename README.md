@@ -50,7 +50,8 @@ at your own risk.
 
 ## What you need
 
-- The display, and a USB **data** cable for its hidden USB-C port (under the rubber cover, bottom right)
+- The display, and a USB **data** cable for its hidden USB-C port: on the back, under the rubber cover by the
+  Lenovo logo ([photo](docs/GUIDE.md#plugging-in-the-usb-cable))
 - A Windows, macOS or Linux computer with about 12 GB free
 - Home Assistant, ideally with a local voice pipeline
 - 20 to 30 minutes; most of it is waiting
@@ -83,6 +84,11 @@ You don't need a GitHub account, and you don't need to know any code. You'll typ
 **5. Do what it says.** It tells you each time it needs you: which buttons to hold on the display, what to set up on
 its screen, and when to press Enter. That's it. If it stops for any reason, type the same command again and it
 carries on where it left off.
+
+<img width="600" alt="The setup screen: every step listed, the current one highlighted, and a yellow box saying what to do on the display" src="assets/images/setup-screen.png" />
+
+Yellow means it's your turn: something to do on the display, or a question to answer. Red only shows when
+something went wrong.
 
 Each system has a one-time extra step (drivers on Windows, a permission on Mac and Linux). The full guides walk
 you through it: [Windows](docs/WINDOWS.md) · [Mac](docs/MACOS.md) · [Linux](docs/LINUX.md).

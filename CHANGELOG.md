@@ -28,6 +28,8 @@ What changed for people converting a display. Newest first.
   the home screen.
 
 ### Docs
+- A screenshot of the setup screen, and what its colours mean, in the README and the [guide](docs/GUIDE.md#what-youll-see).
+- A photo of where the USB cable plugs in, and how to stand the display so the plug fits.
 - New [guide index](docs/GUIDE.md), from choosing a guide to using the display afterwards.
 - [Fitting more on the screen](docs/SIZE.md): use Kiosk Satellite's zoom, not Android's screen density.
 - [Turning the screen off](docs/SCREEN.md): Kiosk Satellite's screensaver at brightness 0, with tap to wake.

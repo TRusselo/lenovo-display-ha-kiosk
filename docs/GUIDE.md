@@ -23,6 +23,19 @@ Every page in one place, in the order you'll need them.
 The tool tells you each time it needs you at the display. The screen stays black in EDL and fastboot modes:
 that's normal.
 
+## What you'll see
+
+<img width="600" alt="The setup screen during the backup" src="../assets/images/setup-screen.png" />
+
+One screen that redraws as setup goes: a bar, every step with a ✓ when it's done, and the current one
+highlighted. Under it, the job in progress counts up, such as "19 of 55" for the backup.
+
+- **Yellow is your turn.** An "On the display" box says what to do there, with the buttons in bold. A yellow
+  question waits for you to type or press Enter.
+- **Display mode** shows which mode the display is in while the tool waits for it. It keeps waiting as long
+  as you need: press Ctrl-C to stop.
+- **Red means something went wrong.** The tool shows the last lines of its log and where the log is saved.
+
 ## Before you start
 
 Pick the guide for your computer:
@@ -32,6 +45,14 @@ Pick the guide for your computer:
 - [Running from source](PYTHON.md): any computer with Python 3.10 or newer, including Intel Macs
 
 New to this? [Words you'll see](../README.md#words-youll-see) explains the terms.
+
+### Plugging in the USB cable
+
+<img width="600" alt="The back of the display: the USB cable plugged in under the Lenovo logo, hanging over the table edge, and the power cable on the right" src="../assets/images/usb-cable-plugged-in.jpeg" />
+
+The USB-C port is on the back, under the rubber cover by the Lenovo logo. The power socket is the round one at
+the other end. The USB plug points straight down, so let that end of the display hang over a table edge, as in
+the photo, or stand the display on its end.
 
 ## During setup
 

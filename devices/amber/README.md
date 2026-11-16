@@ -20,7 +20,9 @@ rather do it by hand, or if you're an AI agent following along.
 ## 1. `prerequisites`: free space and tools
 
 - **What you need:** a USB-A or USB-C **data** cable, and at least **12 GB free**.
-- **USB-C port:** it's under the rubber cover at the bottom right of the display's back.
+- **USB-C port:** it's on the back, under the rubber cover by the Lenovo logo. The plug points straight down, so
+  let that end hang over a table edge, or stand the display on its end
+  ([photo](../../docs/GUIDE.md#plugging-in-the-usb-cable)).
 - **Tools:** download Google's platform-tools for your OS and unzip them.
 - **Drivers:** set up USB access for your OS: [docs/drivers.md](../../docs/drivers.md).
 
