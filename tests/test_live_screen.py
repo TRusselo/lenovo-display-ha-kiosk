@@ -269,3 +269,56 @@ def test_no_usb_stops_when_the_user_types_stop(tmp_path):
     ctx = sys_ctx(tmp_path, runner, ["stop"])
     with pytest.raises(system.SetupFailed, match="run the same command again"):
         system.wait_booted(ctx)
+
+
+# --- run 8 requests: a clean start, readable notes, a bar on the live line -------------
+
+CLEAR_ALL = "\x1b[3J"
+
+
+def test_screen_clears_the_scrollback_too(tty):
+    # The terminal's own banner (system info) shouldn't sit above the setup screen.
+    UI(stdout=tty).screen(TITLES, 1, set())
+    assert CLEAR_ALL in tty.getvalue()
+
+
+def test_title_screen_clears_and_names_the_job(tty):
+    UI(stdout=tty).title("Restore the stock software")
+    text = tty.getvalue()
+    assert text.startswith(CLEAR) and CLEAR_ALL in text
+    assert "Restore the stock software" in plain(text) and "Lenovo Smart Display 8" in plain(text)
+
+
+def test_title_without_a_terminal_clears_nothing():
+    out = io.StringIO()
+    UI(stdout=out).title("Restore the stock software")
+    assert "\x1b[" not in out.getvalue()
+
+
+def test_notes_and_waiting_steps_arent_the_dim_style(tty):
+    # The terminal's dim style is dark grey: hard to read on black.
+    ui = UI(stdout=tty)
+    ui.screen(TITLES, 1, set())
+    with ui.busy("Writing the backup to the display", interval=0.01) as job:
+        job.note("34 of 55: oem_a", 34, 55)
+        time.sleep(0.15)
+    assert "\x1b[2m" not in tty.getvalue()
+
+
+def test_a_counted_job_draws_a_bar(tty):
+    with UI(stdout=tty).busy("Writing the backup to the display", interval=0.01) as job:
+        job.note("27 of 54: oem_a", 27, 54)
+        time.sleep(0.15)
+    frame = plain(tty.getvalue()).split("\r")[-2]
+    assert "█" in frame and "░" in frame and "27 of 54: oem_a" in frame
+
+
+def test_restore_starts_with_a_title_screen(tmp_path, monkeypatch):
+    from lhk import cli
+    ui = FakeUI()
+    ui.title = lambda text: ui.lines.append(f"[title] {text}")
+    monkeypatch.setattr(cli, "_context", lambda args: Context(runner=FakeRunner(), ui=ui, paths=Paths(tmp_path)))
+    (tmp_path / "bk").mkdir()
+    monkeypatch.setattr(cli.backup, "verify_backup", lambda d: ["stop here"])
+    cli.main(["restore", str(tmp_path / "bk"), "--workdir", str(tmp_path)])
+    assert ui.lines[0].startswith("[title] ")

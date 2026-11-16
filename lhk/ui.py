@@ -37,8 +37,8 @@ _PLAIN = {"ok": "[x]", "todo": "[ ]", "fail": "[!]", "full": "#", "empty": "-", 
 # colour schemes remap the basic magenta, and some draw it red.
 _BOLD, _PURPLE, _TITLE, _YELLOW, _RED, _CYAN, _NOW, _DIM, _RESET = (
     "\x1b[1m", "\x1b[38;5;141m", "\x1b[1;38;5;141m", "\x1b[1;33m", "\x1b[31m", "\x1b[38;5;80m",
-    "\x1b[1;38;5;80m", "\x1b[2m", "\x1b[0m")
-CLEAR = "\x1b[H\x1b[2J"
+    "\x1b[1;38;5;80m", "\x1b[38;5;248m", "\x1b[0m")    # "dim" is a light grey: the terminal's own dim is unreadable on black
+CLEAR = "\x1b[H\x1b[2J\x1b[3J"     # the screen and the scrollback: no banner or old screens above
 TITLE = "Lenovo Smart Display 8 {to} Home Assistant"
 
 
@@ -113,6 +113,22 @@ class UI:
             bar = "=" * 72
             self.stdout.write(f"\n{bar}\n  DO THIS ON THE DISPLAY:\n  {text}\n{bar}\n")
         self.stdout.flush()
+
+    def title(self, text: str) -> None:
+        """A fresh screen for a job that isn't the step-by-step setup, such as a restore."""
+        self._end_status()
+        if not self._live():
+            self.stdout.write(f"\n{text}\n\n")
+            self.stdout.flush()
+            return
+        head = TITLE.format(to=self._symbols()["to"])
+        self.stdout.write(f"{CLEAR}\n  {self._paint(_TITLE, head)}\n  {self._paint(_NOW, text)}\n\n")
+        self.stdout.flush()
+
+    def _bar(self, fraction: float, width: int = 12) -> str:
+        sym = self._symbols()
+        filled = max(0, min(width, round(width * fraction)))
+        return self._paint(_PURPLE, sym["full"] * filled) + self._paint(_DIM, sym["empty"] * (width - filled))
 
     def intro(self, text: str) -> None:
         """Words for the top of the next screen. Without a terminal: shown now."""
@@ -251,11 +267,12 @@ class UI:
                 took = time.monotonic() - start
                 time_text = f"  {_elapsed(took)}" if took >= 3 else ""
                 note = f"  {job.detail}" if job.detail else ""
+                bar = f"  {self._bar(job.fraction)}" if job.fraction is not None else ""
                 # Stay inside one row: a wrapped line can't be redrawn with \r.
-                room = shutil.get_terminal_size((80, 24)).columns - 1 - 4 - len(time_text)
+                room = shutil.get_terminal_size((80, 24)).columns - 1 - 4 - len(time_text) - (14 if bar else 0)
                 label = text + note
                 label = label if len(label) <= room else label[:max(room - 3, 0)] + "..."
-                shown = label[:len(text)] + self._paint(_DIM, label[len(text):]) if len(label) > len(text) else label
+                shown = label[:len(text)] + bar + self._paint(_DIM, label[len(text):]) if len(label) > len(text) else label
                 extra = f"  {self._paint(_DIM, time_text.strip())}" if time_text else ""
                 self.stdout.write(f"\r\x1b[K  {self._paint(_PURPLE, sym['spin'][i % len(sym['spin'])])} "
                                   f"{shown}{extra}")
@@ -325,9 +342,13 @@ class Job:
         self.detail = ""
         self.final = None
         self.paused = False
+        self.fraction = None
 
-    def note(self, detail: str) -> None:
+    def note(self, detail: str, done: float | None = None, total: float | None = None) -> None:
+        """What it's doing now; with done and total, the line also gets a small progress bar."""
         self.detail = detail
+        if done is not None and total:
+            self.fraction = done / total
 
     def done(self, final: str) -> None:
         self.final = final

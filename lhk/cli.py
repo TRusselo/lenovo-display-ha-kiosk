@@ -75,6 +75,7 @@ def _tools_and_edl(ctx) -> Edl:
 
 def _lock(args) -> int:
     ctx = _context(args)
+    ctx.ui.title("Lock verified boot")
     ctx.ui.say("This locks verified boot on a display restored to stock and left unlocked. It reads the "
                "display's boot images in EDL mode first, and locks only if they're stock. You'll type "
                "lock to confirm.")
@@ -87,6 +88,7 @@ def _restore(args) -> int:
         print(f"Can't restore this backup: no backup at {folder}", file=sys.stderr)
         return 2
     ctx = _context(args)
+    ctx.ui.title("Restore the stock software")
     ctx.ui.say("This puts the display back on its stock software, with Google services. It takes "
                "about 10 minutes: the display goes into EDL mode for writing, then fastboot mode to "
                "lock verified boot again. You'll type restore, then lock, to confirm.")

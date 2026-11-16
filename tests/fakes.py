@@ -73,6 +73,9 @@ class FakeUI:
     def status(self, text):
         self.statuses.append(text)
 
+    def title(self, text):
+        self.lines.append(f"[title] {text}")
+
     def intro(self, text):
         self.lines.append(text)
 
@@ -99,7 +102,7 @@ class FakeJob:
         self.lines = lines
         self.final = None
 
-    def note(self, text):
+    def note(self, text, done=None, total=None):
         self.lines.append(f"[note] {text}")
 
     def done(self, text):

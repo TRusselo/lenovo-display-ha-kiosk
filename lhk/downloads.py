@@ -146,7 +146,7 @@ def fetch(entry_id: str, ctx) -> Path:
             def progress(got):
                 if job is not None and total >= 1024 ** 2:
                     job.note(f"{round(got / 1024 ** 2)} of {round(total / 1024 ** 2)} MB, "
-                             f"{min(100, got * 100 // total)}%")
+                             f"{min(100, got * 100 // total)}%", got, total)
             _download(e["url"], part, ctx.ui, progress)
             got = _sha256(part)
         if got != e["sha256"]:

@@ -66,7 +66,7 @@ def backup(ctx, out: Path, edl) -> None:
     if todo:
         with ctx.ui.busy("Backing up the display") as job:
             for i, name in enumerate(todo, 1):
-                job.note(f"{i} of {len(todo)}: {name}")
+                job.note(f"{i} of {len(todo)}: {name}", i - 1, len(todo))
                 edl.read([name], parts)
             job.done(f"Backed up {len(todo)} partitions")
     left = missing(parts)
@@ -119,7 +119,7 @@ def restore(ctx, out: Path, edl) -> None:
     todo = [p.name for p in read_gpt(parts / GPT_FILE) if p.name not in SKIP]
     with ctx.ui.busy("Writing the backup to the display") as job:
         for i, name in enumerate(todo, 1):
-            job.note(f"{i} of {len(todo)}: {name}")
+            job.note(f"{i} of {len(todo)}: {name}", i - 1, len(todo))
             edl.write(name, parts / f"{name}.bin")
         job.done(f"Wrote {len(todo)} partitions")
     # The converted system's user data would make stock fail to start or ask for a reset.
