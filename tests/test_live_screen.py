@@ -55,9 +55,10 @@ def test_screen_clears_and_draws_the_title_bar_and_step_list(tty):
 def test_screen_uses_purple_and_cyan_not_green(tty):
     UI(stdout=tty).screen(TITLES, 2, {1})
     text = tty.getvalue()
-    assert "\x1b[35m" in text or "\x1b[1;35m" in text      # purple
-    assert "\x1b[1;36m" in text                             # cyan: the current step
-    assert "\x1b[32m" not in text                           # no green
+    assert "38;5;141m" in text                             # purple, fixed: not the remappable magenta
+    assert "\x1b[1;38;5;80m" in text                        # cyan: the current step
+    assert "\x1b[32m" not in text and "\x1b[35m" not in text
+    assert "\x1b[31m" not in text                           # red is for errors only
 
 
 def test_done_screen_fills_the_bar_and_ticks_every_step(tty):

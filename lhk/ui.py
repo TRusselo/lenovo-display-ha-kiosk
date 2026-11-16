@@ -33,10 +33,11 @@ _PLAIN = {"ok": "[x]", "todo": "[ ]", "fail": "[!]", "full": "#", "empty": "-", 
           "arrow": ">", "now": ">", "to": "->"}
 
 # Purple and cyan for the screen itself, yellow for anything the user has to do,
-# red for errors.
+# red only for errors. Purple and cyan come from the fixed 256-colour palette:
+# colour schemes remap the basic magenta, and some draw it red.
 _BOLD, _PURPLE, _TITLE, _YELLOW, _RED, _CYAN, _NOW, _DIM, _RESET = (
-    "\x1b[1m", "\x1b[35m", "\x1b[1;35m", "\x1b[1;33m", "\x1b[31m", "\x1b[36m", "\x1b[1;36m", "\x1b[2m",
-    "\x1b[0m")
+    "\x1b[1m", "\x1b[38;5;141m", "\x1b[1;38;5;141m", "\x1b[1;33m", "\x1b[31m", "\x1b[38;5;80m",
+    "\x1b[1;38;5;80m", "\x1b[2m", "\x1b[0m")
 CLEAR = "\x1b[H\x1b[2J"
 TITLE = "Lenovo Smart Display 8 {to} Home Assistant"
 
