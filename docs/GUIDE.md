@@ -50,8 +50,8 @@ New to this? [Words you'll see](../README.md#words-youll-see) explains the terms
 
 <img width="600" alt="The back of the display: the USB cable plugged in under the Lenovo logo, hanging over the table edge, and the power cable on the right" src="../assets/images/usb-cable-plugged-in.jpeg" />
 
-The USB-C port is on the back, under the rubber cover by the Lenovo logo. The power socket is the round one at
-the other end. The USB plug points straight down, so let that end of the display hang over a table edge, as in
+The USB-C port is under the rubber cover at the bottom right of the display's back. The photo is taken from
+behind, so there it's on the left, by the Lenovo logo. The power socket is the round one at the other end. The USB plug points straight down, so let that end of the display hang over a table edge, as in
 the photo, or stand the display on its end.
 
 ## During setup

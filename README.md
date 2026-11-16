@@ -50,8 +50,8 @@ at your own risk.
 
 ## What you need
 
-- The display, and a USB **data** cable for its hidden USB-C port: on the back, under the rubber cover by the
-  Lenovo logo ([photo](docs/GUIDE.md#plugging-in-the-usb-cable))
+- The display, and a USB **data** cable for its hidden USB-C port (under the rubber cover, bottom right)
+  ([photo](docs/GUIDE.md#plugging-in-the-usb-cable))
 - A Windows, macOS or Linux computer with about 12 GB free
 - Home Assistant, ideally with a local voice pipeline
 - 20 to 30 minutes; most of it is waiting
