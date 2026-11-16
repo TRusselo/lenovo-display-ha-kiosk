@@ -251,7 +251,9 @@ def test_all_done_reminds_to_save_the_backup_by_name(tmp_path, monkeypatch):
     z.parent.mkdir(parents=True)
     z.write_bytes(b"PK")
     plan.VerifyStep().run(ctx)
-    end = " ".join(ctx.ui.lines[ctx.ui.lines.index("All done. The display is a Home Assistant kiosk."):])
+    for closing in ctx.after:
+        closing()
+    end = " ".join(ctx.ui.lines[ctx.ui.lines.index("[ok] All done. The display is a Home Assistant kiosk."):])
     assert str(z) in end and "safe" in end
 
 
@@ -268,6 +270,8 @@ def test_final_check_ends_with_what_to_do_next(tmp_path, monkeypatch):
     monkeypatch.setattr(bootfix, "verify", lambda ctx, **kw: [])
     ctx = make_ctx(tmp_path, runner)
     plan.VerifyStep().run(ctx)
+    for closing in ctx.after:
+        closing()
     section = next(l for l in ctx.ui.lines if l.startswith("[section] What's next"))
     assert "http://10.0.0.50:2324" in section
     assert "docs/SCREEN.md" in section and "docs/TIMEZONES.md" in section

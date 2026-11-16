@@ -5,11 +5,17 @@ What changed for people converting a display. Newest first.
 ## Unreleased
 
 ### Setup
-- **Clearer progress.** Setup lists every step at the start, numbers each one as it begins ("Step 5 of 15"),
-  matching the [manual](devices/amber/README.md), and marks it done when it finishes.
-- **Long waits show they're still working.** On a terminal, a spinner and the time taken so far, and each
-  finished job says how long it took.
-- **Instructions for the display stand out more.** "DO THIS ON THE DISPLAY" is in colour on a terminal.
+- **A new setup screen.** On a terminal, each step redraws one screen: a progress bar and every step,
+  ticked as it's done, with the current one highlighted. Work in progress shows on one live line, such as
+  "Backing up the display: 12 of 55" or "Downloading: 312 of 704 MB, 44%", instead of a long list. Output
+  piped to a file, and Windows' classic console, keep the plain scrolling text.
+- **Instructions for the display stand out.** On a terminal, they're short yellow "On the display" boxes,
+  and questions for you are yellow too.
+- **No USB after flashing no longer stops setup.** The first start can take 10 minutes or more, and the
+  display may not show up on USB until its cable is replugged. Setup now asks you to unplug the USB cable,
+  count to 3 and plug it back in, then carries on.
+- **Devices on adb over Wi-Fi are ignored**, instead of stopping setup as "more than one device".
+- Setup says up front that it needs 12 GB free, and small downloads no longer show as "0 MB".
 - **When setup stops, you see why.** The last lines of the log appear under the error, with your home folder
   shown as `~`, ready to copy into a forum post.
 - **A "What's next" list at the end:** Kiosk Satellite's settings address, turning the screen off, and where
@@ -18,7 +24,6 @@ What changed for people converting a display. Newest first.
   before installing. On one display Cast's data had filled the storage.
 - **Reconnects Wi-Fi** before Kiosk Satellite's setup if the display has lost it.
 - **Mac: stops before EDL mode if libusb is missing**, and says to run `brew install libusb`.
-- **When the display doesn't show up after flashing**, setup suggests a USB-A to USB-C cable.
 - The final check fails if Kiosk Satellite isn't device owner. Without that, it can't update itself or stay
   the home screen.
 

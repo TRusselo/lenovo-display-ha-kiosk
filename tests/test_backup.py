@@ -148,10 +148,12 @@ def test_skip_warning_text_is_exact():
                                "display unless you can find its firmware elsewhere.")
 
 
-def test_backup_shows_progress_per_partition(tmp_path, ctx):
+def test_backup_shows_progress_per_partition_on_one_line(tmp_path, ctx):
     bk.backup(ctx, tmp_path / "bk", make_edl(tmp_path))
-    busy = [l for l in ctx.ui.lines if l.startswith("[busy] Backing up")]
-    assert busy and busy[0].startswith("[busy] Backing up vbmeta_a (1 of ")
+    assert [l for l in ctx.ui.lines if l.startswith("[busy]")] == ["[busy] Backing up the display"]
+    notes = [l for l in ctx.ui.lines if l.startswith("[note]")]
+    assert notes[0].startswith("[note] 1 of ") and notes[0].endswith(": vbmeta_a")
+    assert f"[done] Backed up {len(notes)} partitions" in ctx.ui.lines
 
 
 def test_restore_shows_progress_per_partition(tmp_path, ctx):
@@ -160,8 +162,9 @@ def test_restore_shows_progress_per_partition(tmp_path, ctx):
     edl = make_edl(tmp_path)
     bk.restore(ctx, out, edl)
     written = [c for c in edl.calls if c[0] == "w"]
-    busy = [l for l in ctx.ui.lines if l.startswith("[busy] Writing")]
-    assert len(busy) == len(written) and f"(1 of {len(written)})" in busy[0]
+    assert "[busy] Writing the backup to the display" in ctx.ui.lines
+    assert f"[note] 1 of {len(written)}: {written[0][1]}" in ctx.ui.lines
+    assert f"[done] Wrote {len(written)} partitions" in ctx.ui.lines
     assert "[busy] Erasing user data" in ctx.ui.lines
 
 

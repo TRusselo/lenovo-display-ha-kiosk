@@ -47,6 +47,9 @@ class Context:
     paths: Paths
     dry_run: bool = False
     state: dict = field(default_factory=dict)
+    # Closing words, shown after the last step's done screen (on a terminal, each
+    # step clears the screen, so anything printed before it would vanish).
+    after: list = field(default_factory=list)
 
     @property
     def serial(self) -> str:
@@ -110,10 +113,13 @@ def run_steps(steps: list[Step], ctx: Context, *, start_from: str | None = None,
     shown = not ctx.dry_run and ctx.ui is not None
     if finished and shown and start_from is None:
         nxt = next(s for s in steps if s.name not in done)
-        ctx.ui.say(f"Picking up where the last run stopped, at: {nxt.title} "
+        ctx.ui.intro(f"Picking up where the last run stopped, at: {nxt.title} "
                    f"({len(finished)} of {len(names)} steps done).")
-    if shown:
-        ctx.ui.overview([(s.title, s.name in done) for s in steps])
+    titles = [s.title for s in steps]
+
+    def done_numbers():
+        return {i for i, s in enumerate(steps, 1) if s.name in done}
+
     for number, step in enumerate(steps, 1):
         if step.name in done:
             continue
@@ -123,7 +129,7 @@ def run_steps(steps: list[Step], ctx: Context, *, start_from: str | None = None,
             continue
         if shown:
             # Numbered like the headings in the manual (devices/amber/README.md).
-            ctx.ui.header(number, len(steps), step.title)
+            ctx.ui.screen(titles, number, done_numbers())
         if step.done(ctx):
             if ctx.ui is not None:
                 ctx.ui.say(f"Already done on the display: {step.title}.")
@@ -133,3 +139,7 @@ def run_steps(steps: list[Step], ctx: Context, *, start_from: str | None = None,
         _save(ctx, done)
         if shown:
             ctx.ui.ok(step.title)
+    if shown:
+        ctx.ui.screen(titles, len(steps) + 1, done_numbers())
+    for closing in ctx.after:
+        closing()

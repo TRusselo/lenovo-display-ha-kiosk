@@ -145,13 +145,14 @@ def test_step_already_on_the_display_is_named(tmp_path):
     assert "Already done on the display: a." in ctx.ui.lines
 
 
-def test_each_step_gets_a_numbered_header_and_a_done_mark(tmp_path):
+def test_each_step_gets_a_screen_and_a_done_mark(tmp_path):
     from tests.fakes import FakeUI
     ctx = make_ctx(tmp_path)
     ctx.ui = FakeUI()
     run_steps([Recorder("a", []), Recorder("b", [], already=True)], ctx)
     lines = ctx.ui.lines
-    assert lines.index("[step 1/2] a") < lines.index("[ok] a") < lines.index("[step 2/2] b") < lines.index("[ok] b")
+    assert (lines.index("[screen 1/2] a:todo b:todo") < lines.index("[ok] a")
+            < lines.index("[screen 2/2] a:done b:todo") < lines.index("[ok] b"))
 
 
 def test_overview_comes_after_the_resume_line(tmp_path):
@@ -162,8 +163,8 @@ def test_overview_comes_after_the_resume_line(tmp_path):
     ctx.ui = FakeUI()
     run_steps([Recorder("a", []), Recorder("b", [])], ctx)
     assert ctx.ui.lines[0].startswith("Picking up")
-    assert ctx.ui.lines[1] == "[overview] a:done b:todo"
-    assert "[step 2/2] b" in ctx.ui.lines and "[step 1/2] a" not in ctx.ui.lines
+    assert ctx.ui.lines[1] == "[screen 2/2] a:done b:todo"
+    assert not any(l.startswith("[screen 1/2]") for l in ctx.ui.lines)
 
 
 def test_failed_step_gets_no_done_mark(tmp_path):

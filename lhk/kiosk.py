@@ -229,23 +229,19 @@ class SettingsStep(Step):
         reconnect_wifi(ctx)
         # Nothing else opens it: without this the display stays on the Android Things settings.
         shell(ctx, "monkey", "-p", PKG, "-c", "android.intent.category.LAUNCHER", "1", check=False)
-        ctx.ui.say("Kiosk Satellite is open on the display. Go through its setup there:\n"
-                   "  1. A name for the display, and an admin password for its remote admin.\n"
-                   "  2. Your Home Assistant address, and a sign-in or a long-lived access token.\n"
-                   "  3. The dashboard to show.\n"
-                   "  4. Voice satellite and ESPHome options.\n"
-                   "  5. Permissions: already granted by this tool, so just press Finish.\n"
-                   "Kiosk Satellite saves your sign-in on page 2, before setup is finished, so this "
-                   "tool waits for you.")
+        ctx.ui.say("Kiosk Satellite is open on the display. Go through its 5 setup pages there:\n"
+                   "  1. A name, and an admin password for its remote admin\n"
+                   "  2. Your Home Assistant address, and a sign-in or a long-lived access token\n"
+                   "  3. The dashboard to show\n"
+                   "  4. Voice satellite and ESPHome options\n"
+                   "  5. Permissions: already done by this tool, so just press Finish")
         ensure_root_rw(ctx)
         ip = wifi_ip(ctx)
         if ip:
             # The address on a line of its own, so terminals make it clickable.
-            ctx.ui.say("You can do these pages in your browser instead, which makes pasting your Home "
-                       "Assistant address and token easy. On the display, you can scan a QR code of the "
-                       f"token with its camera. Either way works. In a browser:\n  http://{ip}:2324")
-        ctx.ui.alert("NOT DONE YET! Kiosk Satellite starts up after you press FINISH on page 5. "
-                     "COME BACK HERE AND PRESS ENTER: this tool still has steps to do.")
+            ctx.ui.say("Easier in a browser, for pasting your address and token (or scan a QR code of the "
+                       f"token on the display):\n  http://{ip}:2324")
+        ctx.ui.alert("NOT DONE YET! After you press FINISH on page 5, come back here and press Enter.")
         while True:
             if choose(ctx.ui, "Press Enter here once you've pressed Finish on the display, "
                               "or type stop: ", "stop"):

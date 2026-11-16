@@ -65,7 +65,14 @@ def _sha256(path: Path) -> str:
     return h.hexdigest()
 
 
-def _download(url: str, part: Path, ui=None) -> None:
+def human_size(n: int) -> str:
+    """Rounded for people: never "0 MB" for a small file."""
+    if n < 1024 ** 2:
+        return f"{max(1, round(n / 1024))} KB"
+    return f"{round(n / 1024 ** 2)} MB"
+
+
+def _download(url: str, part: Path, ui=None, progress=None) -> None:
     part.parent.mkdir(parents=True, exist_ok=True)
     have = part.stat().st_size if part.exists() else 0
     headers = {"Range": f"bytes={have}-"} if have else {}
@@ -76,8 +83,12 @@ def _download(url: str, part: Path, ui=None) -> None:
             return
         r.raise_for_status()
         with open(part, "ab" if have else "wb") as f:
+            got = have
             for chunk in r.iter_content(CHUNK):
                 f.write(chunk)
+                got += len(chunk)
+                if progress:
+                    progress(got)
 
 
 def _unpack(kind: str, archive: Path, out: Path) -> None:
@@ -130,8 +141,13 @@ def fetch(entry_id: str, ctx) -> Path:
         return out
     if not (file.exists() and verified.exists() and verified.read_text() == e["sha256"]):
         part = file.with_name(file.name + ".part")
-        with _busy(ctx, f"Downloading {file.name} ({e['size'] / 1024 ** 2:.0f} MB)"):
-            _download(e["url"], part, ctx.ui)
+        total = e["size"]
+        with _busy(ctx, f"Downloading {file.name} ({human_size(total)})") as job:
+            def progress(got):
+                if job is not None and total >= 1024 ** 2:
+                    job.note(f"{round(got / 1024 ** 2)} of {round(total / 1024 ** 2)} MB, "
+                             f"{min(100, got * 100 // total)}%")
+            _download(e["url"], part, ctx.ui, progress)
             got = _sha256(part)
         if got != e["sha256"]:
             part.unlink(missing_ok=True)

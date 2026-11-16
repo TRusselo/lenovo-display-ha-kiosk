@@ -1,4 +1,5 @@
 import io
+import re
 import os
 import time
 
@@ -151,7 +152,7 @@ def test_busy_on_a_terminal_spins_and_says_how_long_it_took(monkeypatch):
         time.sleep(0.1)
     text = out.getvalue()
     assert "\r" in text and "Flashing boot_a" in text
-    assert text.endswith("s)\n")          # "... (0s)"
+    assert re.sub(r"\x1b\[[0-9;]*m", "", text).endswith("s)\n")          # "... (0s)"
     assert "\x1b[" in text
 
 
@@ -168,7 +169,7 @@ def test_physical_box_keeps_its_words_and_is_coloured_on_a_terminal(monkeypatch)
     _vt_on(monkeypatch)
     out = _Tty()
     UI(stdout=out).physical("Hold the volume-down button.")
-    assert "DO THIS ON THE DISPLAY" in out.getvalue() and "\x1b[" in out.getvalue()
+    assert "On the display" in out.getvalue() and "\x1b[" in out.getvalue()
     plain = io.StringIO()
     UI(stdout=plain).physical("Hold the volume-down button.")
     assert "\x1b[" not in plain.getvalue() and "DO THIS ON THE DISPLAY:" in plain.getvalue()

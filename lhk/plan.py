@@ -76,21 +76,25 @@ class VerifyStep(Step):
                             "screen. Run: lhk setup --from kiosk-grants")
         if problems:
             raise system.SetupFailed("Final check failed: " + "; ".join(problems) + ".")
-        ctx.ui.say("All done. The display is a Home Assistant kiosk.")
         z = ctx.paths.backup / f"{ctx.state.get('progress_id', 'display')}.zip"
-        if z.exists():
-            ctx.ui.alert(f"SAVE YOUR BACKUP: copy {z} somewhere safe, off this computer if you can, and "
-                         "keep it private. It's the only way back to this display's stock software.")
         ip = system.wifi_ip(ctx)
         nxt = []
         if ip:
             nxt.append(f"Change Kiosk Satellite's settings from a browser: http://{ip}:2324")
         nxt += [
             "Turn the screen off, with tap to wake: " + doc("docs/SCREEN.md"),
+            "Fit more on the screen: " + doc("docs/SIZE.md"),
             "If a dashboard shows times an hour off: " + doc("docs/TIMEZONES.md"),
             "Questions: the Home Assistant Community and XDA threads, linked in " + doc("README.md"),
         ]
-        ctx.ui.section("What's next", nxt)
+
+        def closing():
+            ctx.ui.ok("All done. The display is a Home Assistant kiosk.")
+            if z.exists():
+                ctx.ui.alert(f"SAVE YOUR BACKUP: copy {z} somewhere safe, off this computer if you can, and "
+                             "keep it private. It's the only way back to this display's stock software.")
+            ctx.ui.section("What's next", nxt)
+        ctx.after.append(closing)
 
 
 def setup_steps() -> list[Step]:

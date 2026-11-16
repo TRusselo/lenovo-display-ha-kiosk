@@ -73,11 +73,37 @@ class FakeUI:
     def status(self, text):
         self.statuses.append(text)
 
+    def intro(self, text):
+        self.lines.append(text)
+
+    def screen(self, titles, current, done):
+        self.lines.append(f"[screen {current}/{len(titles)}] " +
+                          " ".join(f"{t}:{'done' if i in done else 'todo'}" for i, t in enumerate(titles, 1)))
+
     @contextlib.contextmanager
     def busy(self, text, interval=3.0):
         self.lines.append(f"[busy] {text}")
-        yield
+        job = FakeJob(self.lines)
+        yield job
+        if job.final:
+            self.lines.append(f"[done] {job.final}")
+
 
     def ask(self, text):
         self.lines.append(f"[ask] {text}")
         return self.answers.pop(0) if self.answers else ""
+
+
+class FakeJob:
+    def __init__(self, lines):
+        self.lines = lines
+        self.final = None
+
+    def note(self, text):
+        self.lines.append(f"[note] {text}")
+
+    def done(self, text):
+        self.final = text
+
+    def pause(self, text):
+        self.final = text

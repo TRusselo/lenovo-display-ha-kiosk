@@ -20,7 +20,8 @@ EDL_USB_ID = (0x05C6, 0x9008)
 POLL_SECONDS = 0.25
 HINT_AFTER = 20
 NOTHING_HINT = ("Nothing yet. If the screen shows the Lenovo logo, the display is starting normally: "
-                "the buttons weren't held as it powered on. Unplug its power and try again.")
+                "the buttons weren't held as it powered on. If it stays blank, it didn't take either. "
+                "Unplug its power and try again, holding the buttons before you plug it in.")
 RETRY_ASK = "Press Enter to try again, or type stop: "
 
 
@@ -112,7 +113,8 @@ def _list(runner, tool, mode, word):
         if "no permissions" in line:
             raise UsbNoPermission(NO_PERMISSION)
         parts = line.split()
-        if len(parts) >= 2 and parts[1] == word:
+        # adb over Wi-Fi (address:port) is another device on the network, never the display on USB.
+        if len(parts) >= 2 and parts[1] == word and ":" not in parts[0]:
             found.append((mode, parts[0]))
     return found
 

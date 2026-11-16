@@ -118,8 +118,9 @@ def _setup(args) -> int:
     ctx.state["force_model"] = args.force_model
     fresh = args.restart or not (ctx.paths.progress / f"{ctx.state.get('progress_id')}.json").exists()
     if fresh and not args.dry_run and args.start_from is None:
-        ctx.ui.say("Setup takes 20 to 30 minutes, including about 1 GB of downloads the first time. "
-                   "The tool tells you each time it needs you at the display.")
+        ctx.ui.intro("Setup takes 20 to 30 minutes and needs 12 GB free: about 1 GB of downloads the first "
+                     "time, the unpacked firmware, and a backup of the display (about 3.5 GB). The tool tells "
+                     "you each time it needs you at the display.")
     run_steps(plan.setup_steps(), ctx, start_from=args.start_from, restart=args.restart)
     return 0
 

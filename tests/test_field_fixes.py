@@ -135,17 +135,7 @@ def test_kiosk_setup_checks_wifi_first(tmp_path, monkeypatch):
     assert order == ["wifi", "open"]
 
 
-# --- no adb after flashing: the cable ------------------------------------------
-
-def test_no_adb_after_starting_suggests_another_cable(tmp_path):
-    runner = FakeRunner({
-        ("-s", "S1", "shell", "getprop", "sys.boot_completed"): Result(1, ""),
-        ("-s", "S1", "wait-for-device"): subprocess.TimeoutExpired("adb", 300),
-    })
-    with pytest.raises(system.SetupFailed) as e:
-        system.wait_booted(make_ctx(tmp_path, runner))
-    msg = str(e.value)
-    assert "USB-A to USB-C" in msg and "run the same command again" in msg
+# --- no adb after flashing: see test_live_screen (a replug prompt, not a stop) ---
 
 
 # --- libusb for edl on a Mac ----------------------------------------------------

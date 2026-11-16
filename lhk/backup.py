@@ -64,10 +64,11 @@ def backup(ctx, out: Path, edl) -> None:
                                           "Use --name to give this display its own folder.")
     todo = missing(parts)
     if todo:
-        ctx.ui.say(f"Backing up {len(todo)} partitions.")
-        for i, name in enumerate(todo, 1):
-            with ctx.ui.busy(f"Backing up {name} ({i} of {len(todo)})"):
+        with ctx.ui.busy("Backing up the display") as job:
+            for i, name in enumerate(todo, 1):
+                job.note(f"{i} of {len(todo)}: {name}")
                 edl.read([name], parts)
+            job.done(f"Backed up {len(todo)} partitions")
     left = missing(parts)
     if left:
         raise BackupMismatch(f"Backup incomplete, still missing: {', '.join(left)}. Run again to continue.")
@@ -116,9 +117,11 @@ def restore(ctx, out: Path, edl) -> None:
     if not choose(ctx.ui, "Type restore to continue, or press Enter to stop: ", "restore"):
         raise BackupMismatch("Restore cancelled. Nothing was changed.")
     todo = [p.name for p in read_gpt(parts / GPT_FILE) if p.name not in SKIP]
-    for i, name in enumerate(todo, 1):
-        with ctx.ui.busy(f"Writing {name} ({i} of {len(todo)})"):
+    with ctx.ui.busy("Writing the backup to the display") as job:
+        for i, name in enumerate(todo, 1):
+            job.note(f"{i} of {len(todo)}: {name}")
             edl.write(name, parts / f"{name}.bin")
+        job.done(f"Wrote {len(todo)} partitions")
     # The converted system's user data would make stock fail to start or ask for a reset.
     with ctx.ui.busy("Erasing user data"):
         edl.erase("userdata")

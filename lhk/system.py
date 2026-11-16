@@ -12,13 +12,17 @@ from lhk.downloads import _repo_file
 from lhk.mixer import patch_mixer
 from lhk.modes import Mode, MultipleDevices, detect
 from lhk.steps import Step
+from lhk.ui import choose
 
 MIXER_PATH = "/system/etc/mixer_paths_openq624_fep.xml"
 CAST = "com.google.android.apps.mediashell"
-NO_ADB = ("The display didn't show up over USB once Android started. If its screen shows four dots, the new "
-          "system is running and the USB connection is the problem. Try a USB-A to USB-C cable (on a Mac, "
-          "through a USB-A hub or adapter), flip the plug at the display end, or unplug the USB cable and plug "
-          "it back in. Then run the same command again.")
+# Run 7 (2026-11-15) and a Mac tester: after the flash the display can stay off USB
+# for 9 minutes or more, until its USB cable is unplugged and plugged back in.
+REPLUG = ("The display hasn't shown up over USB. Unplug the USB cable from the display, count to 3, and plug "
+          "it back in. Leave the power plugged in. The four dots can keep spinning even when it's ready.")
+NO_ADB = ("Stopped waiting for the display to show up over USB. Unplug its USB cable, count to 3, plug it back "
+          "in, and run the same command again. If it never shows up, try another cable (a USB-A to USB-C "
+          "one), or flip the plug at the display end.")
 NEVER_DISABLE = {"com.google.android.things.sparrow.oem",
                  "com.google.assistant.gallium.client.androidthingshost"}
 
@@ -68,11 +72,17 @@ def wait_booted(ctx, timeout=300, why="the display to start") -> None:
     """Wait until Android has finished starting. Silent when it already has."""
     if _booted(ctx):
         return
+    while True:
+        with ctx.ui.busy(f"Waiting for {why}") as job:
+            try:
+                adb(ctx, "wait-for-device", timeout=timeout)
+                break
+            except subprocess.TimeoutExpired:
+                job.pause("Not on USB yet")
+        ctx.ui.physical(REPLUG)
+        if choose(ctx.ui, "Press Enter to try again, or type stop: ", "stop"):
+            raise SetupFailed(NO_ADB)
     with ctx.ui.busy(f"Waiting for {why}"):
-        try:
-            adb(ctx, "wait-for-device", timeout=timeout)
-        except subprocess.TimeoutExpired as e:
-            raise SetupFailed(NO_ADB) from e
         end = time.monotonic() + timeout
         while not _booted(ctx):
             if time.monotonic() > end:
