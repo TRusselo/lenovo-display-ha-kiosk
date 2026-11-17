@@ -1,0 +1,4 @@
+# The Windows release is built on a Windows runner, where git would otherwise turn
+# LF into CRLF on checkout. Scripts pushed to the display then fail: Android looks
+# for an interpreter named "sh\r" (GitHub issue 3). Keep LF everywhere.
+* text=auto eol=lf

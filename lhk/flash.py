@@ -15,7 +15,7 @@ from lhk.firmware import FLASH_SET, extract
 from lhk.identity import check_adb_identity, check_fastboot_identity
 from lhk.modes import Mode, detect, wait_for_mode
 from lhk.runner import CommandFailed
-from lhk.slots import differing_slots, has_slot_backup
+from lhk.slots import BOOT_CHAIN, RADIO, differing_slots, has_slot_backup
 from lhk.steps import Step
 from lhk.unlock import FASTBOOT_PROMPT
 
@@ -61,20 +61,29 @@ def prepare_images(ctx) -> dict:
         return extract(frw, FLASH_SET, ctx.paths.cache / "images")
 
 
-def check_slot_firmware(ctx) -> None:
-    """Refuse to flash when the two slots' never-flashed firmware differs (see lhk/slots.py)."""
+def check_slot_firmware(ctx, current_slot: str = "") -> None:
+    """Refuse to flash when slot A's never-flashed bootloader firmware differs from that of
+    slot B, the one running (see lhk/slots.py)."""
+    if current_slot.lstrip("_") == "a":
+        return      # slot A's own firmware is starting the display now: flashing A keeps it
     parts = ctx.paths.backup / ctx.state.get("progress_id", "display") / "partitions"
     if not has_slot_backup(parts):
         ctx.ui.say("Note: without a backup, the tool can't check that both slots have the same bootloader "
                    "firmware. On a display that was running from slot B, the new system may not start.")
         return
     differ = differing_slots(parts)
-    if differ:
+    chain = [p for p in differ if p in BOOT_CHAIN]
+    if chain:
         raise FlashRefused(
-            "This display's two slots have different firmware (" + ", ".join(differ) + "). It was "
-            "probably running from slot B after an update that left slot A older. Flashing slot A could "
-            "leave it unable to start, so nothing was written. Please report this, with the output of "
-            "`fastboot getvar all`, so a safe fix can be added.")
+            "This display runs from slot B, and slot A has a different bootloader (" + ", ".join(chain) + "). "
+            "It was probably updated in slot B and left slot A older. Flashing slot A could leave it unable "
+            "to start, so nothing was written. Please report this on GitHub, with the output of "
+            "`fastboot getvar all`, so a safe fix can be added. Don't move the backup away to get past this "
+            "check: lhk restore needs it to put the display back to stock.")
+    radio = [p for p in differ if p in RADIO]
+    if radio:
+        ctx.ui.say("Note: this display runs from slot B, and slot A has older radio firmware (" + ", ".join(radio)
+                   + "). Another display like this worked after the conversion, so setup carries on.")
 
 
 def _fastboot(ctx, serial, *args, timeout=600):
@@ -110,9 +119,10 @@ class FlashStep(Step):
             raise FlashRefused(f"This is a different display ({serial}) from the one this progress is "
                                f"for ({ctx.state['bound_serial']}).")
         ctx.state["serial"] = serial
-        if check_fastboot_identity(ctx, serial).avb_locked is not False:
+        ident = check_fastboot_identity(ctx, serial)
+        if ident.avb_locked is not False:
             raise FlashRefused("Verified boot is still locked; run the unlock step first.")
-        check_slot_firmware(ctx)
+        check_slot_firmware(ctx, ident.current_slot)
         if not ctx.state.get("unlocked_now") and _fresh_stock_backup(ctx):
             ctx.ui.say("Verified boot was already unlocked (a restore left it that way, or it was unlocked "
                        "by hand). The backup just made shows this display is on stock, so there's nothing "

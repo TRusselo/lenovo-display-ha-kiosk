@@ -8,6 +8,23 @@ What changed for people converting a display. Newest first.
   checked and holds the same backup: it was the same 2.5 GB twice. `lhk restore backup/display` still works
   and uses the zip, and running setup again reuses the zip instead of backing up the converted display.
 
+### Windows (thanks to reneh1987, kaptainamazing and scansscans, GitHub issues 1, 3 and 5)
+- **The backup no longer crashes at 0%.** edl's progress bar uses characters Windows' console couldn't print.
+  Setting `PYTHONIOENCODING` or `PYTHONUTF8` by hand is no longer needed.
+- **The volume buttons and light sensor work on Windows.** The Windows build shipped the display's boot
+  scripts with Windows line endings, and Android couldn't run them. They now always go to the display with
+  Unix line endings, and the release build fails if they don't.
+- **Missing the Zadig driver now says so**, and points to the driver steps, instead of a Python traceback.
+
+### Untested models (`--force-model`)
+- **An on-screen keyboard if there's none.** An SD-X701B had no keyboard for the Wi-Fi password. With
+  `--force-model`, setup checks before Wi-Fi and installs [Simple Keyboard](https://github.com/rkkr/simple-keyboard)
+  if needed. The SD-8 has its own and is left alone.
+- **The slot check only stops when it should.** A display running from slot A is never stopped: slot A's own
+  firmware is what starts it. A display running from slot B stops only if slot A has a different bootloader;
+  older radio firmware alone (dsp, modem, drm, bluetooth) is a note. Both displays the old check stopped
+  converted fine. Don't move the backup away to get past the check: `lhk restore` needs it.
+
 ## 0.2.0 (2026-11-16)
 
 ### Setup

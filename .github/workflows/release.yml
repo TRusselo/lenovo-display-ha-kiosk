@@ -46,6 +46,8 @@ jobs:
           ./dist/lhk/lhk --version
           ./dist/lhk/lhk setup --dry-run --workdir "$RUNNER_TEMP/lhk-smoke"
           if find dist/lhk -iname 'edl.py' | grep -q .; then echo "edl must not be bundled"; exit 1; fi
+          # Scripts pushed to the display must keep LF line endings (GitHub issue 3).
+          if grep -rlI $'\r' dist/lhk/_internal/assets; then echo "CRLF in bundled assets"; exit 1; fi
       - name: Zip
         shell: bash
         run: |

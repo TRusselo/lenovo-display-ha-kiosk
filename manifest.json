@@ -96,6 +96,14 @@
       "size": 22739428,
       "unpack": "tar.gz",
       "platform": "linux-aarch64"
+    },
+    {
+      "id": "simple-keyboard",
+      "url": "https://github.com/rkkr/simple-keyboard/releases/download/149/app-release.apk",
+      "sha256": "7914e9aaac823667c601b1143d2da6f221398c41a8bb63f48a9c9d46dce0d0a2",
+      "size": 630327,
+      "unpack": null,
+      "platform": null
     }
   ]
 }

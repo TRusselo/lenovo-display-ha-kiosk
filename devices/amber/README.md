@@ -79,14 +79,18 @@ its firmware elsewhere.**
 
 ## 5. `flash`: flash the userdebug build to slot A
 
-0. **Check both slots match first.** Some displays run from slot B after an update. This step flashes slot A
-   and makes it active, but never writes the per-slot firmware. So compare the two slots in your backup:
-   `sbl1`, `aboot`, `tz`, `rpm`, `keymaster`, `cmnlib`, `devcfg`, `oem_bootloader`, `dsp`, `modem`, `drm`
-   and `bluetooth`. Compare `NAME_a.bin` with `NAME_b.bin`, for example with `sha256sum`.
-   - If every pair is identical, as on the tested displays, go on.
-   - **If any differ, stop:** slot A may hold older firmware, and the new system might not start. Please report
-     it.
-   - Without a backup, this can't be checked.
+0. **Check the slots first.** Some displays run from slot B after an update. This step flashes slot A and
+   makes it active, but never writes the per-slot firmware. `fastboot getvar current-slot` says which slot runs.
+   - **Running slot A:** go on. Slot A's own firmware is what starts the display now.
+   - **Running slot B:** compare the two slots in your backup, `NAME_a.bin` with `NAME_b.bin` (for example
+     with `sha256sum`). The bootloader chain is `sbl1`, `aboot`, `tz`, `rpm`, `keymaster`, `cmnlib`, `devcfg`
+     and `oem_bootloader`; the radio firmware is `dsp`, `modem`, `drm` and `bluetooth`.
+     - Every pair identical, as on the tested displays: go on.
+     - Only radio firmware differs: one display like this worked after the conversion, so `lhk` goes on with a
+       note.
+     - **Any bootloader part differs: stop.** Slot A may be too old to start the new system. Please report it.
+   - Without a backup, this can't be checked. Don't move the backup away to get past the check: `lhk restore`
+     needs it.
 1. Extract `FRW.bin` from the `.7z`. It's a whole-disk image laid out like the **10"**.
 2. Read **its own** partition table, and copy out `boot_a`, `system_a`, `vendor_a`, `oem_a` and `vbmeta_a`.
    `lhk` does this; by hand, use the GPT's first LBA and sector count with `dd`, at 512-byte sectors.
@@ -135,7 +139,21 @@ adb shell restorecon /system/usr/share/zoneinfo/tzdata
 **Check:** `adb shell head -c 11 /system/usr/share/zoneinfo/tzdata` prints the new version, for example
 `tzdata2026f`. See [docs/TIMEZONES.md](../../docs/TIMEZONES.md).
 
-## 8. `things-settings`: Wi-Fi and time zone, on the display
+## 8. `keyboard`: an on-screen keyboard (untested models only)
+
+The SD-8 has its own keyboard, so setup skips this step. With `--force-model`, setup checks for one, because
+an SD-X701B had none and its Wi-Fi password couldn't be typed. If `adb shell ime list -s` prints nothing,
+install [Simple Keyboard](https://github.com/rkkr/simple-keyboard) (release 149, `app-release.apk`):
+
+```bash
+adb install -r app-release.apk
+adb shell ime enable rkr.simplekeyboard.inputmethod/.latin.LatinIME
+adb shell ime set rkr.simplekeyboard.inputmethod/.latin.LatinIME
+```
+
+**Check:** `adb shell ime list -s` prints `rkr.simplekeyboard.inputmethod/.latin.LatinIME`.
+
+## 9. `things-settings`: Wi-Fi and time zone, on the display
 
 After flashing, the screen shows a Google spinner. Open the Android Things settings:
 
@@ -150,7 +168,7 @@ On the display:
 
 **Check:** `adb shell ip -4 addr show wlan0` shows an `inet` address.
 
-## 9. `degoogle`: turn off Assistant, Cast and check-ins
+## 10. `degoogle`: turn off Assistant, Cast and check-ins
 
 ```bash
 adb shell pm disable com.google.assistant.gallium.dragonglass.platform.androidthings.system
@@ -165,7 +183,7 @@ package: they're part of Android Things itself.
 
 **Check:** `adb shell pm list packages -d` lists those four.
 
-## 10. `mixer`: microphone gain
+## 11. `mixer`: microphone gain
 
 In `/system/etc/mixer_paths_openq624_fep.xml`, change exactly six lines:
 - the **top-level** `DEC1 Volume` and `DEC2 Volume`, from `84` to `96`
@@ -177,7 +195,7 @@ back, and `adb shell chmod 644` it.
 **Check:** `adb shell grep -c 'value="12"' /system/etc/mixer_paths_openq624_fep.xml` prints `4` or more, and the
 two DEC lines show `96`.
 
-## 11. `kiosk-install`: install Kiosk Satellite
+## 12. `kiosk-install`: install Kiosk Satellite
 
 Download the newest `*armeabi-v7a.apk` from [Kiosk Satellite's releases](https://github.com/jxlarrea/kiosk-satellite/releases).
 Check its SHA-256 against the release page, and its signing certificate:
@@ -189,7 +207,7 @@ adb install -r -g kiosk-satellite-VERSION.armeabi-v7a.apk
 
 **Check:** `adb shell pm path me.jxl.kiosk_satellite` prints a `package:` line.
 
-## 12. `kiosk-grants`: permissions and device owner
+## 13. `kiosk-grants`: permissions and device owner
 
 ```bash
 adb shell appops set me.jxl.kiosk_satellite REQUEST_INSTALL_PACKAGES allow
@@ -207,7 +225,7 @@ removes it.
 
 **Check:** `adb shell dumpsys device_policy` shows Kiosk Satellite under `Device Owner`.
 
-## 13. `kiosk-settings`: connect to Home Assistant, then apply the settings
+## 14. `kiosk-settings`: connect to Home Assistant, then apply the settings
 
 1. On the display, go through all five pages of Kiosk Satellite's setup wizard and press **Finish**: a name and
    admin password, your Home Assistant address and sign-in, the dashboard, voice and ESPHome options, then
@@ -228,7 +246,7 @@ to the setup wizard.
 
 **Check:** with the app open, `adb shell dumpsys input | grep -c nav_input_consumer` prints `0`.
 
-## 14. `bootfix`: light sensor and volume buttons
+## 15. `bootfix`: light sensor and volume buttons
 
 - **Volume buttons:** these are GPIOs that only a Google component used to read. The fix is a small helper that
   turns presses into volume keys.
@@ -256,7 +274,7 @@ adb reboot
 - `adb shell dumpsys sensorservice | grep kiosk_satellite.LightSensor` finds a line
 - pressing volume up changes the volume
 
-## 15. `verify`: final check
+## 16. `verify`: final check
 
 - Everything from steps 5 and 14 still holds.
 - Kiosk Satellite shows your dashboard.

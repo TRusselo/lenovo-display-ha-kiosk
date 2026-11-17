@@ -35,6 +35,8 @@ class DownloadsStep(Step):
         for id_ in ("oimk-userdebug-frw", "avb-unlock", "firehose", "edl",
                     platform_entry("uv", manifest, platform_arch())):
             fetch(id_, ctx)
+        if ctx.state.get("force_model"):
+            fetch("simple-keyboard", ctx)       # untested models may have no keyboard (KeyboardStep)
         # Before the display is touched, so a GitHub limit or outage can't stop
         # the run halfway through the conversion.
         with ctx.ui.busy("Setting up edl"):
@@ -111,7 +113,8 @@ class VerifyStep(Step):
 def setup_steps() -> list[Step]:
     return [
         PrerequisitesStep(), DownloadsStep(), BackupStep(), UnlockStep(), FlashStep(),
-        system.RootStep(), tzdata.TzdataStep(), system.OpenThingsSettingsStep(),
+        system.RootStep(), tzdata.TzdataStep(), system.KeyboardStep(),
+        system.OpenThingsSettingsStep(),
         system.DegoogleStep(), system.MixerStep(), kiosk.InstallStep(), kiosk.GrantsStep(),
         kiosk.SettingsStep(), bootfix.BootFixStep(), VerifyStep(),
     ]

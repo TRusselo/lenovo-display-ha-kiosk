@@ -97,8 +97,17 @@ def check_buttons(ctx, wait: float = 60) -> None:
             ctx.ui.redraw()
             ctx.ui.say(f"Still waiting for {name}. If the button doesn't change the volume, press Ctrl-C "
                        "and run the same command again: setup goes on without this check, and "
-                       + doc("devices/amber/README.md", "step 14") + " says what to look at.")
+                       + doc("devices/amber/README.md", "step 15") + " says what to look at.")
     ctx.ui.say("Volume buttons work.")
+
+
+def _lf_copy(ctx, src: Path) -> Path:
+    """A copy with LF line endings. A CRLF script fails on the display: Android looks for
+    an interpreter named "sh\\r" (GitHub issue 3, a Windows build)."""
+    out = ctx.paths.cache / "bootfix" / src.name
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_bytes(src.read_bytes().replace(b"\r\n", b"\n"))
+    return out
 
 
 class BootFixStep(Step):
@@ -114,7 +123,7 @@ class BootFixStep(Step):
         for asset, remote, mode, label in FILES:
             if remote == "/init.rc":
                 raise BootFixFailed("refusing to write /init.rc")
-            local = _jar(ctx) if asset == "ks-volkeys.jar" else _repo_file(asset)
+            local = _jar(ctx) if asset == "ks-volkeys.jar" else _lf_copy(ctx, _repo_file(asset))
             adb(ctx, "push", str(local), remote)
             shell(ctx, "chmod", mode, remote)
             if label:

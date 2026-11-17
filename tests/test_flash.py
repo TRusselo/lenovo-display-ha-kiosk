@@ -14,11 +14,11 @@ UNLOCKED = "(bootloader) avb-locked=0\n(bootloader) at-perm-attr-hash=802e273eca
 LOCKED = UNLOCKED.replace("avb-locked=0", "avb-locked=1")
 
 
-def fb_responses(vboot):
+def fb_responses(vboot, slot="a"):
     return {
         ("-s", "S1", "getvar", "at-vboot-state"): Result(0, vboot),
         ("-s", "S1", "getvar", "product"): Result(0, "product: msm8x53\n"),
-        ("-s", "S1", "getvar", "current-slot"): Result(0, "current-slot: a\n"),
+        ("-s", "S1", "getvar", "current-slot"): Result(0, f"current-slot: {slot}\n"),
         ("-s", "S1", "getvar", "max-download-size"): Result(0, "max-download-size: 0x1fe00000\n"),
     }
 
@@ -176,7 +176,7 @@ def test_differing_slots_names_mismatches(tmp_path):
 
 def test_flash_refuses_when_bootloader_slots_differ(tmp_path, monkeypatch):
     write_backup(tmp_path, differ={"sbl1"})
-    runner = FakeRunner(fb_responses(UNLOCKED))
+    runner = FakeRunner(fb_responses(UNLOCKED, slot="b"))
     ctx = make_ctx(tmp_path, runner)
     ctx.state["progress_id"] = "display"
     monkeypatch.setattr(flash, "prepare_images", lambda ctx: fake_images(tmp_path))
@@ -197,7 +197,7 @@ def test_flash_proceeds_when_slots_match(tmp_path, monkeypatch):
 
 
 def test_flash_warns_when_there_is_no_backup_to_check(tmp_path, monkeypatch):
-    runner = FakeRunner(fb_responses(UNLOCKED))
+    runner = FakeRunner(fb_responses(UNLOCKED, slot="b"))
     ctx = make_ctx(tmp_path, runner)
     ctx.state["progress_id"] = "display"
     monkeypatch.setattr(flash, "prepare_images", lambda ctx: fake_images(tmp_path))
@@ -228,7 +228,7 @@ def test_unlocked_stock_with_a_fresh_stock_backup_flashes_without_the_wipe_warni
     _stock_backup(tmp_path)
     ctx = make_ctx(tmp_path, FakeRunner(fb_responses(UNLOCKED)))
     ctx.state.update(unlocked_now=False, progress_id="display", backup_this_run=True)
-    monkeypatch.setattr(flash, "check_slot_firmware", lambda ctx: None)
+    monkeypatch.setattr(flash, "check_slot_firmware", lambda ctx, slot="": None)
     monkeypatch.setattr(flash, "prepare_images", lambda ctx: fake_images(tmp_path))
     FlashStep().run(ctx)
     assert not any("converted" in l for l in ctx.ui.lines)
@@ -241,7 +241,7 @@ def test_unlocked_without_a_backup_this_run_still_asks(tmp_path, monkeypatch):
     ctx = make_ctx(tmp_path, FakeRunner(fb_responses(UNLOCKED)))
     ctx.state.update(unlocked_now=False, progress_id="display")
     ctx.ui.answers = ["flash"]
-    monkeypatch.setattr(flash, "check_slot_firmware", lambda ctx: None)
+    monkeypatch.setattr(flash, "check_slot_firmware", lambda ctx, slot="": None)
     monkeypatch.setattr(flash, "prepare_images", lambda ctx: fake_images(tmp_path))
     FlashStep().run(ctx)
     assert any(l.startswith("[ask]") and "flash" in l for l in ctx.ui.lines)

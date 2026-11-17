@@ -8,7 +8,7 @@ import tempfile
 import time
 from pathlib import Path
 
-from lhk.downloads import _repo_file
+from lhk.downloads import _repo_file, fetch
 from lhk.mixer import patch_mixer
 from lhk.modes import Mode, MultipleDevices, detect
 from lhk.steps import Step
@@ -250,6 +250,33 @@ class OpenThingsSettingsStep(Step):
         shell(ctx, "setprop", "persist.sys.timezone", zone)
         ctx.ui.keep(f"Time zone set to {zone}. It takes effect when the display restarts, which this tool "
                    "does near the end. Don't pick a zone in the list again, or it replaces this one.")
+
+
+IME = "rkr.simplekeyboard.inputmethod/.latin.LatinIME"
+
+
+class KeyboardStep(Step):
+    """Untested models only (--force-model): the Wi-Fi password needs an on-screen keyboard,
+    and an SD-X701B had none (GitHub issue 5). Simple Keyboard (Apache-2.0), as the clock
+    tool installs. The supported SD-8 has its own, and is left alone."""
+    name = "keyboard"
+    title = "Check for an on-screen keyboard (untested models)"
+
+    def done(self, ctx) -> bool:
+        if not ctx.state.get("force_model"):
+            return True
+        return bool(shell(ctx, "ime", "list", "-s", check=False).strip())
+
+    def run(self, ctx) -> None:
+        apk = fetch("simple-keyboard", ctx)
+        ctx.ui.say("This display has no on-screen keyboard for the Wi-Fi password. Adding Simple Keyboard.")
+        with ctx.ui.busy("Installing Simple Keyboard"):
+            adb(ctx, "install", "-r", str(apk), timeout=300)
+        shell(ctx, "ime", "enable", IME)
+        shell(ctx, "ime", "set", IME)
+        if not self.done(ctx):
+            raise SetupFailed("Simple Keyboard installed, but Android didn't switch to it. Please report "
+                              "this on GitHub, with the log.")
 
 
 class DegoogleStep(Step):

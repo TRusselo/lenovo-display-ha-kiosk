@@ -7,8 +7,10 @@ import os
 import sys
 from pathlib import Path
 
+from lhk import doc
 from lhk.downloads import fetch
 from lhk.modes import LIBUSB_MISSING, UsbBackendMissing
+from lhk.runner import CommandFailed
 from lhk.uvrun import uv_path, uv_python
 
 LOADER = "amber_bluebbery_prog_emmc_firehose_8953_ddr.mbn"
@@ -26,6 +28,20 @@ def check_libusb(platform=None, exists=os.path.exists) -> None:
         raise UsbBackendMissing(LIBUSB_MISSING)
 
 
+# edl draws its progress bar with block characters. Windows' console encoding (cp1252)
+# can't print them, and edl crashed at 0% of the first read (GitHub issues 1, 3, 5).
+UTF8 = {"PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8"}
+# What edl prints on Windows when the display has no WinUSB driver yet (issue 5).
+NO_DRIVER = ("Please first install libusb_win32 driver from Zadig", "NotImplementedError: Operation not supported")
+ZADIG = ("Windows can't talk to the display in EDL mode yet: it needs the WinUSB driver, installed once with "
+         "Zadig. Follow " + doc("docs/drivers.md") + ", then run the same command again. The display can stay "
+         "in EDL mode while you do.")
+
+
+def _env() -> dict:
+    return {**os.environ, **UTF8}
+
+
 class Edl:
     def __init__(self, ctx):
         check_libusb()
@@ -37,14 +53,19 @@ class Edl:
         self.uv = uv_path(ctx)
 
     def _run(self, *args, timeout=1800):
-        return self.ctx.runner.run(
-            [*uv_python(self.uv, "--with-requirements", str(self.requirements)), self.script, *args,
-             "--memory=eMMC", f"--loader={self.loader}"], timeout=timeout)
+        try:
+            return self.ctx.runner.run(
+                [*uv_python(self.uv, "--with-requirements", str(self.requirements)), self.script, *args,
+                 "--memory=eMMC", f"--loader={self.loader}"], timeout=timeout, env=_env())
+        except CommandFailed as e:
+            if any(m in e.result.out for m in NO_DRIVER):
+                raise UsbBackendMissing(ZADIG) from e
+            raise
 
     def prepare(self) -> None:
         """Let uv fetch edl's packages now, before the display waits in EDL."""
         self.ctx.runner.run([*uv_python(self.uv, "--with-requirements", str(self.requirements)),
-                             "-c", "pass"], timeout=1800)
+                             "-c", "pass"], timeout=1800, env=_env())
 
     def dump_gpt(self, dest_dir) -> None:
         # edl's own "gpt" command prints "Dumped GPT" but never writes the file

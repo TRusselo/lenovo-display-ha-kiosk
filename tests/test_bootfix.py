@@ -170,7 +170,7 @@ def test_buttons_reminder_says_how_to_go_on_without_the_check(tmp_path, monkeypa
     ctx = make_ctx(tmp_path, _volume_runner([40, 40, 40, 40, 40, 45, 45, 40]))
     bootfix.check_buttons(ctx)
     reminder = next(l for l in ctx.ui.lines if "Ctrl-C" in l)
-    assert "same command" in reminder and "step 14" in reminder
+    assert "same command" in reminder and "step 15" in reminder
     assert "[redraw]" in ctx.ui.lines
 
 
