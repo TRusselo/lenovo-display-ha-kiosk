@@ -29,6 +29,7 @@ class Identity:
     model: str
     product: str = ""
     current_slot: str = ""
+    slot_a_successful: bool = False
     avb_locked: bool | None = None
     max_download_size: int = 0
     perm_attr_hash: str = ""
@@ -73,6 +74,7 @@ def check_fastboot_identity(ctx, serial) -> Identity:
         model="",
         product=_value(_getvar(ctx, serial, "product"), "product"),
         current_slot=_value(_getvar(ctx, serial, "current-slot"), "current-slot"),
+        slot_a_successful=_value(_getvar(ctx, serial, "slot-successful:a"), "slot-successful:a") == "yes",
         max_download_size=int(_value(_getvar(ctx, serial, "max-download-size"),
                                      "max-download-size") or "0", 0),
         perm_attr_hash=_value(vboot, "at-perm-attr-hash"),

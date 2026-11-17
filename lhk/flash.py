@@ -61,11 +61,13 @@ def prepare_images(ctx) -> dict:
         return extract(frw, FLASH_SET, ctx.paths.cache / "images")
 
 
-def check_slot_firmware(ctx, current_slot: str = "") -> None:
+def check_slot_firmware(ctx, ident=None) -> None:
     """Refuse to flash when slot A's never-flashed bootloader firmware differs from that of
     slot B, the one running (see lhk/slots.py)."""
-    if current_slot.lstrip("_") == "a":
-        return      # slot A's own firmware is starting the display now: flashing A keeps it
+    if ident is not None and ident.current_slot.lstrip("_") == "a" and ident.slot_a_successful:
+        # Slot A's own firmware is starting the display now: flashing A keeps it. Only when slot A
+        # has started: after set_active a on a slot-B display, it reports slot A before it ever has.
+        return
     parts = ctx.paths.backup / ctx.state.get("progress_id", "display") / "partitions"
     if not has_slot_backup(parts):
         ctx.ui.say("Note: without a backup, the tool can't check that both slots have the same bootloader "
@@ -122,7 +124,7 @@ class FlashStep(Step):
         ident = check_fastboot_identity(ctx, serial)
         if ident.avb_locked is not False:
             raise FlashRefused("Verified boot is still locked; run the unlock step first.")
-        check_slot_firmware(ctx, ident.current_slot)
+        check_slot_firmware(ctx, ident)
         if not ctx.state.get("unlocked_now") and _fresh_stock_backup(ctx):
             ctx.ui.say("Verified boot was already unlocked (a restore left it that way, or it was unlocked "
                        "by hand). The backup just made shows this display is on stock, so there's nothing "

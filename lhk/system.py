@@ -260,16 +260,18 @@ class KeyboardStep(Step):
     and an SD-X701B had none (GitHub issue 5). Simple Keyboard (Apache-2.0), as the clock
     tool installs. The supported SD-8 has its own, and is left alone."""
     name = "keyboard"
-    title = "Check for an on-screen keyboard (untested models)"
+    title = "Add an on-screen keyboard (untested models)"
 
     def done(self, ctx) -> bool:
         if not ctx.state.get("force_model"):
             return True
-        return bool(shell(ctx, "ime", "list", "-s", check=False).strip())
+        # Not "is there any keyboard": both models run the same flashed system, so that can't
+        # tell them apart. As the clock tool does: done once Simple Keyboard is the keyboard.
+        return shell(ctx, "settings", "get", "secure", "default_input_method", check=False).strip() == IME
 
     def run(self, ctx) -> None:
         apk = fetch("simple-keyboard", ctx)
-        ctx.ui.say("This display has no on-screen keyboard for the Wi-Fi password. Adding Simple Keyboard.")
+        ctx.ui.say("Untested model: adding Simple Keyboard, so the Wi-Fi password can be typed on the display.")
         with ctx.ui.busy("Installing Simple Keyboard"):
             adb(ctx, "install", "-r", str(apk), timeout=300)
         shell(ctx, "ime", "enable", IME)

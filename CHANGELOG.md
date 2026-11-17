@@ -17,11 +17,11 @@ What changed for people converting a display. Newest first.
 - **Missing the Zadig driver now says so**, and points to the driver steps, instead of a Python traceback.
 
 ### Untested models (`--force-model`)
-- **An on-screen keyboard if there's none.** An SD-X701B had no keyboard for the Wi-Fi password. With
-  `--force-model`, setup checks before Wi-Fi and installs [Simple Keyboard](https://github.com/rkkr/simple-keyboard)
-  if needed. The SD-8 has its own and is left alone.
-- **The slot check only stops when it should.** A display running from slot A is never stopped: slot A's own
-  firmware is what starts it. A display running from slot B stops only if slot A has a different bootloader;
+- **An on-screen keyboard.** An SD-X701B showed no keyboard for the Wi-Fi password. With `--force-model`,
+  setup installs [Simple Keyboard](https://github.com/rkkr/simple-keyboard) before Wi-Fi and makes it the
+  keyboard, as the clock tool does. The SD-8 is left alone.
+- **The slot check only stops when it should.** A display running from slot A, which has started successfully,
+  is never stopped: slot A's own firmware is what starts it. A display running from slot B stops only if slot A has a different bootloader;
   older radio firmware alone (dsp, modem, drm, bluetooth) is a note. Both displays the old check stopped
   converted fine. Don't move the backup away to get past the check: `lhk restore` needs it.
 

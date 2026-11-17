@@ -81,7 +81,8 @@ its firmware elsewhere.**
 
 0. **Check the slots first.** Some displays run from slot B after an update. This step flashes slot A and
    makes it active, but never writes the per-slot firmware. `fastboot getvar current-slot` says which slot runs.
-   - **Running slot A:** go on. Slot A's own firmware is what starts the display now.
+   - **Running slot A, and `fastboot getvar slot-successful:a` says `yes`:** go on. Slot A's own firmware is
+     what starts the display now.
    - **Running slot B:** compare the two slots in your backup, `NAME_a.bin` with `NAME_b.bin` (for example
      with `sha256sum`). The bootloader chain is `sbl1`, `aboot`, `tz`, `rpm`, `keymaster`, `cmnlib`, `devcfg`
      and `oem_bootloader`; the radio firmware is `dsp`, `modem`, `drm` and `bluetooth`.
@@ -141,9 +142,9 @@ adb shell restorecon /system/usr/share/zoneinfo/tzdata
 
 ## 8. `keyboard`: an on-screen keyboard (untested models only)
 
-The SD-8 has its own keyboard, so setup skips this step. With `--force-model`, setup checks for one, because
-an SD-X701B had none and its Wi-Fi password couldn't be typed. If `adb shell ime list -s` prints nothing,
-install [Simple Keyboard](https://github.com/rkkr/simple-keyboard) (release 149, `app-release.apk`):
+On the SD-8, setup skips this step. With `--force-model`, setup installs
+[Simple Keyboard](https://github.com/rkkr/simple-keyboard) (release 149, `app-release.apk`) and makes it the
+keyboard, because an SD-X701B showed none for its Wi-Fi password:
 
 ```bash
 adb install -r app-release.apk
@@ -151,7 +152,8 @@ adb shell ime enable rkr.simplekeyboard.inputmethod/.latin.LatinIME
 adb shell ime set rkr.simplekeyboard.inputmethod/.latin.LatinIME
 ```
 
-**Check:** `adb shell ime list -s` prints `rkr.simplekeyboard.inputmethod/.latin.LatinIME`.
+**Check:** `adb shell settings get secure default_input_method` prints
+`rkr.simplekeyboard.inputmethod/.latin.LatinIME`.
 
 ## 9. `things-settings`: Wi-Fi and time zone, on the display
 

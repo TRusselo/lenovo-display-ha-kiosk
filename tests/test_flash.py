@@ -228,7 +228,7 @@ def test_unlocked_stock_with_a_fresh_stock_backup_flashes_without_the_wipe_warni
     _stock_backup(tmp_path)
     ctx = make_ctx(tmp_path, FakeRunner(fb_responses(UNLOCKED)))
     ctx.state.update(unlocked_now=False, progress_id="display", backup_this_run=True)
-    monkeypatch.setattr(flash, "check_slot_firmware", lambda ctx, slot="": None)
+    monkeypatch.setattr(flash, "check_slot_firmware", lambda ctx, ident=None: None)
     monkeypatch.setattr(flash, "prepare_images", lambda ctx: fake_images(tmp_path))
     FlashStep().run(ctx)
     assert not any("converted" in l for l in ctx.ui.lines)
@@ -241,7 +241,7 @@ def test_unlocked_without_a_backup_this_run_still_asks(tmp_path, monkeypatch):
     ctx = make_ctx(tmp_path, FakeRunner(fb_responses(UNLOCKED)))
     ctx.state.update(unlocked_now=False, progress_id="display")
     ctx.ui.answers = ["flash"]
-    monkeypatch.setattr(flash, "check_slot_firmware", lambda ctx, slot="": None)
+    monkeypatch.setattr(flash, "check_slot_firmware", lambda ctx, ident=None: None)
     monkeypatch.setattr(flash, "prepare_images", lambda ctx: fake_images(tmp_path))
     FlashStep().run(ctx)
     assert any(l.startswith("[ask]") and "flash" in l for l in ctx.ui.lines)

@@ -101,7 +101,7 @@ def test_bootfix_pushes_lf_even_from_a_crlf_copy(tmp_path, monkeypatch):
 UNLOCKED = "(bootloader) avb-locked=0\n(bootloader) at-perm-attr-hash=802e273eca8ccaaa69b1623f96cd7e11\n"
 
 
-def _flash_ctx(tmp_path, monkeypatch, slot, differ):
+def _flash_ctx(tmp_path, monkeypatch, slot, differ, a_ok="yes"):
     from lhk.slots import SLOT_FIRMWARE
     parts = tmp_path / "backup" / "display" / "partitions"
     parts.mkdir(parents=True)
@@ -112,6 +112,7 @@ def _flash_ctx(tmp_path, monkeypatch, slot, differ):
         ("-s", "S1", "getvar", "at-vboot-state"): Result(0, UNLOCKED),
         ("-s", "S1", "getvar", "product"): Result(0, "product: msm8x53\n"),
         ("-s", "S1", "getvar", "current-slot"): Result(0, f"current-slot: {slot}\n"),
+        ("-s", "S1", "getvar", "slot-successful:a"): Result(0, f"slot-successful:a: {a_ok}\n"),
         ("-s", "S1", "getvar", "max-download-size"): Result(0, "max-download-size: 0x1fe00000\n"),
     })
     ctx = Context(runner=runner, ui=FakeUI(), paths=Paths(tmp_path))
@@ -133,6 +134,15 @@ def test_running_slot_a_flashes_even_when_slot_b_differs(tmp_path, monkeypatch):
     ctx, runner = _flash_ctx(tmp_path, monkeypatch, "a", {"keymaster", "cmnlib", "oem_bootloader"})
     flash.FlashStep().run(ctx)
     assert _flashed(runner)
+
+
+def test_slot_a_made_active_but_never_started_is_still_checked(tmp_path, monkeypatch):
+    # A slot-B display after set_active a (an earlier run, or the moved-backup workaround)
+    # reports current-slot a, but slot A has never started: check it as slot B.
+    ctx, runner = _flash_ctx(tmp_path, monkeypatch, "a", {"aboot"}, a_ok="no")
+    with pytest.raises(flash.FlashRefused):
+        flash.FlashStep().run(ctx)
+    assert not _flashed(runner)
 
 
 def test_running_slot_b_with_only_radio_firmware_differing_warns_and_flashes(tmp_path, monkeypatch):
@@ -172,9 +182,18 @@ def test_keyboard_is_left_alone_on_the_supported_model(tmp_path):
     assert runner.calls == []
 
 
-def test_keyboard_already_there_on_a_forced_model(tmp_path):
-    runner = FakeRunner({("-s", "S1", "shell", "ime", "list", "-s"): Result(0, "com.example/.Ime\n")})
+def test_keyboard_already_set_on_a_forced_model(tmp_path):
+    runner = FakeRunner({("-s", "S1", "shell", "settings", "get", "secure", "default_input_method"):
+                         Result(0, system.IME + "\n")})
     assert system.KeyboardStep().done(_kb_ctx(tmp_path, runner, force=True))
+
+
+def test_another_keyboard_on_a_forced_model_still_gets_simple_keyboard(tmp_path):
+    # Both models run the same flashed system, so "is there any keyboard" can't tell them
+    # apart; the X701B still had none on screen. As the clock tool: set Simple Keyboard.
+    runner = FakeRunner({("-s", "S1", "shell", "settings", "get", "secure", "default_input_method"):
+                         Result(0, "com.example/.Ime\n")})
+    assert not system.KeyboardStep().done(_kb_ctx(tmp_path, runner, force=True))
 
 
 def test_keyboard_installed_on_a_forced_model_without_one(tmp_path, monkeypatch):
@@ -182,8 +201,8 @@ def test_keyboard_installed_on_a_forced_model_without_one(tmp_path, monkeypatch)
     apk.write_bytes(b"PK")
     monkeypatch.setattr(system, "fetch", lambda id_, ctx: apk if id_ == "simple-keyboard" else None)
     runner = FakeRunner({
-        ("-s", "S1", "shell", "ime", "list", "-s"): [Result(0, ""), Result(0, system.IME + "\n")],
-        ("-s", "S1", "shell", "settings", "get", "secure", "default_input_method"): Result(0, system.IME + "\n"),
+        ("-s", "S1", "shell", "settings", "get", "secure", "default_input_method"):
+            [Result(0, "null\n"), Result(0, system.IME + "\n")],
     })
     ctx = _kb_ctx(tmp_path, runner, force=True)
     step = system.KeyboardStep()
