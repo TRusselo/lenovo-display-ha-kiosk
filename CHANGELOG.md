@@ -2,7 +2,7 @@
 
 What changed for people converting a display. Newest first.
 
-## Unreleased
+## 0.2.0 (2026-11-16)
 
 ### Setup
 - **A new setup screen.** On a terminal, each step redraws one screen: a progress bar and every step,
