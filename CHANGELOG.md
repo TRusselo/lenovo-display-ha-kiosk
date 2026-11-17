@@ -2,6 +2,12 @@
 
 What changed for people converting a display. Newest first.
 
+## Unreleased
+
+- **Only the zip is kept.** After a successful setup, the backup folder is removed once the zip next to it is
+  checked and holds the same backup: it was the same 2.5 GB twice. `lhk restore backup/display` still works
+  and uses the zip, and running setup again reuses the zip instead of backing up the converted display.
+
 ## 0.2.0 (2026-11-16)
 
 ### Setup

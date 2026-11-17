@@ -218,3 +218,42 @@ def test_unpack_checks_free_space_first(tmp_path, ctx, monkeypatch):
     monkeypatch.setattr(bk.shutil, "disk_usage", lambda p: type("U", (), {"free": 1})())
     with pytest.raises(bk.BackupMismatch, match="space"):
         bk.unpack(ctx, z, tmp_path / "restore")
+
+
+# Keep only the zip after a successful setup: the folder is the same backup twice.
+def test_drop_folder_removes_it_when_the_zip_holds_the_same_backup(tmp_path, ctx):
+    out = tmp_path / "bk"
+    bk.backup(ctx, out, make_edl(tmp_path))
+    z = bk.pack(ctx, out)
+    assert bk.drop_folder(ctx, out) is True
+    assert not out.exists() and z.exists()
+    assert bk.verify_backup(bk.unpack(ctx, z, tmp_path / "restore")) == []
+
+
+def test_drop_folder_keeps_it_without_a_zip(tmp_path, ctx):
+    out = tmp_path / "bk"
+    bk.backup(ctx, out, make_edl(tmp_path))
+    assert bk.drop_folder(ctx, out) is False
+    assert bk.verify_backup(out) == []
+
+
+def test_drop_folder_keeps_it_when_the_zip_is_a_different_backup(tmp_path, ctx):
+    out = tmp_path / "bk"
+    bk.backup(ctx, out, make_edl(tmp_path))
+    bk.pack(ctx, out)
+    (out / "partitions" / "boot_a.bin").write_bytes(b"newer")
+    lines = [f"{bk._sha(f)}  {f.name}" for f in sorted((out / "partitions").glob("*.bin"))]
+    (out / "SHA256SUMS").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    assert bk.drop_folder(ctx, out) is False
+    assert out.exists()
+
+
+def test_drop_folder_keeps_it_when_the_zip_is_damaged(tmp_path, ctx):
+    out = tmp_path / "bk"
+    bk.backup(ctx, out, make_edl(tmp_path))
+    z = bk.pack(ctx, out)
+    data = bytearray(z.read_bytes())
+    data[len(data) // 3] ^= 0xFF
+    z.write_bytes(bytes(data))
+    assert bk.drop_folder(ctx, out) is False
+    assert out.exists()

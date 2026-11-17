@@ -205,3 +205,45 @@ def test_ctrl_c_shows_no_log_tail(tmp_path, monkeypatch, capsys):
     monkeypatch.setattr(cli, "run_steps", stop)
     assert cli.main(["setup", "--workdir", str(tmp_path)]) == 130
     assert "secretless line" not in capsys.readouterr().err
+
+
+def test_backup_step_reuses_the_zip_when_setup_removed_the_folder(tmp_path, monkeypatch):
+    # The folder is removed after a successful setup. A later backup step must not back up the
+    # converted display and pack it over the stock zip: it unpacks the zip instead.
+    from lhk import backup
+    seen = []
+    monkeypatch.setattr(plan, "wait_for_mode", lambda mode, ctx, **kw: pytest.fail("asked for EDL"))
+    monkeypatch.setattr(backup, "backup", lambda ctx, out, edl: pytest.fail("backed up again"))
+    monkeypatch.setattr(backup, "pack", lambda ctx, out: pytest.fail("packed over the zip"))
+    monkeypatch.setattr(backup, "unpack", lambda ctx, z, root: seen.append((z, root)) or root / z.stem)
+    monkeypatch.setattr(backup, "verify_backup", lambda d: [])
+    ctx = Context(runner=FakeRunner(), ui=FakeUI(), paths=Paths(tmp_path), state={"progress_id": "d"})
+    z = tmp_path / "backup" / "d.zip"
+    z.parent.mkdir(parents=True)
+    z.write_bytes(b"PK")
+    plan.BackupStep().run(ctx)
+    assert seen == [(z, tmp_path / "backup")]
+    assert not ctx.state.get("backup_this_run")
+
+
+def test_restore_takes_the_folder_name_when_only_the_zip_is_left(tmp_path, monkeypatch):
+    # Setup removes the folder and keeps the zip; restore given the folder's name uses the zip.
+    from lhk import backup, relock
+    seen = []
+    z = tmp_path / "backup" / "display.zip"
+    z.parent.mkdir(parents=True)
+    z.write_bytes(b"PK")
+    monkeypatch.setattr(cli, "_context", lambda args: Context(runner=FakeRunner(), ui=FakeUI(),
+                                                              paths=Paths(tmp_path / "w"), state={}))
+    (tmp_path / "u").mkdir()
+    monkeypatch.setattr(backup, "unpack", lambda ctx, f, dest: seen.append(("unpack", f)) or tmp_path / "u")
+    monkeypatch.setattr(backup, "verify_backup", lambda d: [])
+    monkeypatch.setattr(cli, "fetch", lambda id_, ctx: None)
+    monkeypatch.setattr(cli.Tools, "locate", staticmethod(lambda cache: "tools"))
+    monkeypatch.setattr(cli, "Edl", lambda ctx: type("E", (), {"prepare": lambda self: None})())
+    monkeypatch.setattr(relock, "stock_problems", lambda d: [])
+    monkeypatch.setattr(cli, "wait_for_mode", lambda mode, ctx, **kw: None)
+    monkeypatch.setattr(backup, "restore", lambda ctx, d, edl: seen.append(("write", d)))
+    monkeypatch.setattr(relock, "relock", lambda ctx, d: True)
+    assert cli.main(["restore", str(tmp_path / "backup" / "display"), "--workdir", str(tmp_path / "w")]) == 0
+    assert seen == [("unpack", z), ("write", tmp_path / "u")]

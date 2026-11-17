@@ -189,7 +189,9 @@ These are proven on two displays; `GUIDE.md` and `NOTES.md` have the detail.
   - It warns that the display will be back on the 2021 stock OS with
     Google services.
   - It downloads every tool before asking for EDL mode.
-  - It takes the backup folder or the one-file zip the backup step writes.
+  - It takes the backup folder or the one-file zip the backup step writes. A successful setup removes the
+    folder once the zip is checked against it, so only the zip is kept; given the folder's name, restore uses
+    the zip. A later setup unpacks the zip rather than backing up the converted display over it.
   - It then locks verified boot again (`fastboot oem at-lock-vboot`, after the
     user types `lock`), because unlocked stock never gets past Google
     Assistant's loading dots. It locks only a backup that proves it is stock:

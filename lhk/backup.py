@@ -15,6 +15,7 @@ import os
 import shutil
 import tempfile
 import zipfile
+import zlib
 from pathlib import Path
 
 from lhk.ui import choose
@@ -141,6 +142,27 @@ def pack(ctx, out: Path) -> Path:
                     z.write(f, f.relative_to(out).as_posix())
         os.replace(part, dest)
     return dest
+
+
+def drop_folder(ctx, out: Path) -> bool:
+    """After a successful setup, keep only the zip: the folder is the same backup twice.
+    Removed only when the zip next to it holds this same backup (same checksum list) and
+    reads back whole. Returns whether it was removed."""
+    out = Path(out)
+    z = out.with_name(out.name + ".zip")
+    if not (out.is_dir() and z.is_file()):
+        return False
+    try:
+        with zipfile.ZipFile(z) as zf:
+            if zf.read("SHA256SUMS") != (out / "SHA256SUMS").read_bytes():
+                return False
+            with ctx.ui.busy(f"Checking {z.name}"):
+                if zf.testzip() is not None:
+                    return False
+    except (OSError, KeyError, zipfile.BadZipFile, zlib.error, EOFError):
+        return False
+    shutil.rmtree(out)
+    return True
 
 
 def unpack(ctx, archive: Path, dest_root: Path) -> Path:

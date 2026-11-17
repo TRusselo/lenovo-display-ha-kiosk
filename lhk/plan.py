@@ -54,13 +54,23 @@ class BackupStep(Step):
                 return
             ctx.ui.say("OK, making the backup.")
         out = ctx.paths.backup / ctx.state.get("progress_id", "display")
+        z = out.with_name(out.name + ".zip")
+        if not out.exists() and z.is_file():
+            # A finished setup keeps only the zip. Backing up again now would copy the converted
+            # display and pack it over the stock backup: unpack the zip instead.
+            folder = backup.unpack(ctx, z, out.parent)
+            problems = backup.verify_backup(folder)
+            if problems:
+                raise backup.BackupMismatch(f"{z} can't be used: " + "; ".join(problems))
+            ctx.ui.keep(f"Using the backup already saved in {z}.")
+            return
         wait_for_mode(Mode.EDL, ctx, prompt=EDL_PROMPT, timeout=180)
         backup.backup(ctx, out, Edl(ctx))
         ctx.state["backup_this_run"] = True
         z = backup.pack(ctx, out)
         ctx.ui.keep(f"The backup is also saved as one file: {z}. It's named after --name (display, if "
-                   "you didn't give one). Copy it somewhere safe and keep it private. lhk restore takes "
-                   "this file or the folder.")
+                   "you didn't give one). Copy it somewhere safe and keep it private. Once setup "
+                   "finishes, only this file is kept: lhk restore takes it.")
 
 
 class VerifyStep(Step):
@@ -77,6 +87,7 @@ class VerifyStep(Step):
         if problems:
             raise system.SetupFailed("Final check failed: " + "; ".join(problems) + ".")
         z = ctx.paths.backup / f"{ctx.state.get('progress_id', 'display')}.zip"
+        backup.drop_folder(ctx, z.with_suffix(""))
         ip = system.wifi_ip(ctx)
         nxt = []
         if ip:

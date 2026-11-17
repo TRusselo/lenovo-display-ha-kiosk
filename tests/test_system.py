@@ -293,3 +293,34 @@ def test_final_check_fails_when_kiosk_satellite_is_not_device_owner(tmp_path, mo
         plan.VerifyStep().run(ctx)
     assert "--from kiosk-grants" in str(e.value)
     assert "All done. The display is a Home Assistant kiosk." not in ctx.ui.lines
+
+
+def test_final_check_keeps_only_the_zip_after_a_successful_setup(tmp_path, monkeypatch):
+    from lhk import plan, bootfix, backup
+    dropped = []
+    runner = FakeRunner({
+        ("-s", "S1", "shell", "getprop", "ro.build.fingerprint"):
+            Result(0, "Things/x:8.1.0/OIMK.211005.001/7795499:userdebug/dev-keys\n"),
+        ("-s", "S1", "shell", "wm", "size"): Result(0, "Physical size: 800x1280\n"),
+        ("-s", "S1", "shell", "dumpsys", "device_policy"): Result(0, OWNER_DUMP),
+    })
+    monkeypatch.setattr(bootfix, "verify", lambda ctx, **kw: [])
+    monkeypatch.setattr(backup, "drop_folder", lambda ctx, out: dropped.append(out) or True)
+    ctx = make_ctx(tmp_path, runner)
+    ctx.state["progress_id"] = "kitchen"
+    plan.VerifyStep().run(ctx)
+    assert dropped == [ctx.paths.backup / "kitchen"]
+
+
+def test_final_check_that_fails_keeps_the_backup_folder(tmp_path, monkeypatch):
+    from lhk import plan, bootfix, backup
+    runner = FakeRunner({
+        ("-s", "S1", "shell", "getprop", "ro.build.fingerprint"):
+            Result(0, "Things/x:8.1.0/OIMK.211005.001/7795499:userdebug/dev-keys\n"),
+        ("-s", "S1", "shell", "wm", "size"): Result(0, "Physical size: 800x1280\n"),
+        ("-s", "S1", "shell", "dumpsys", "device_policy"): Result(0, "Device Policy Management:\n"),
+    })
+    monkeypatch.setattr(bootfix, "verify", lambda ctx, **kw: [])
+    monkeypatch.setattr(backup, "drop_folder", lambda ctx, out: pytest.fail("removed the folder"))
+    with pytest.raises(system.SetupFailed):
+        plan.VerifyStep().run(make_ctx(tmp_path, runner))
