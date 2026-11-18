@@ -60,3 +60,36 @@ def test_root_step_restarts_when_any_line_shows_a_change(tmp_path, monkeypatch):
     out = "Verity already disabled on /system\nSuccessfully disabled verification on /vendor\n"
     system.RootStep().run(make_ctx(tmp_path, _root_runner(out)))
     assert rebooted == [True]
+
+
+def _screen_runner(size):
+    r = _root_runner("Verity already disabled on /system\n")
+    r.responses[("-s", "S1", "shell", "wm", "size")] = Result(0, f"Physical size: {size}\n")
+    return r
+
+
+def test_root_step_checks_the_screen_when_the_hardware_id_was_missing(tmp_path, monkeypatch):
+    import pytest
+    from lhk.identity import UnsupportedDevice
+    monkeypatch.setattr(system, "ensure_root_rw", lambda ctx: None)
+    c = make_ctx(tmp_path, _screen_runner("1200x1920"))
+    c.state["confirm_screen"] = True
+    with pytest.raises(UnsupportedDevice):
+        system.RootStep().run(c)
+    assert c.state["confirm_screen"] is True
+
+
+def test_root_step_clears_the_check_on_an_8_inch_screen(tmp_path, monkeypatch):
+    monkeypatch.setattr(system, "ensure_root_rw", lambda ctx: None)
+    c = make_ctx(tmp_path, _screen_runner("800x1280"))
+    c.state["confirm_screen"] = True
+    system.RootStep().run(c)
+    assert "confirm_screen" not in c.state
+
+
+def test_root_step_is_not_done_while_the_screen_check_is_pending(tmp_path, monkeypatch):
+    monkeypatch.setattr(system, "_is_root_rw", lambda ctx: (True, True))
+    c = make_ctx(tmp_path, FakeRunner({}))
+    assert system.RootStep().done(c) is True
+    c.state["confirm_screen"] = True
+    assert system.RootStep().done(c) is False

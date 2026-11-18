@@ -52,11 +52,28 @@ def test_other_product_refused():
         check_fastboot_identity(ctx(fastboot_runner(other)), "S1")
 
 
-def test_generic_product_name_alone_is_not_enough():
-    # The 10" also reports msm8x53; only the permanent-attribute hash tells them apart.
-    no_hash = "\n".join(l for l in AMBER_VBOOT.splitlines() if "perm-attr-hash" not in l)
+NO_HASH = "\n".join(l for l in AMBER_VBOOT.splitlines() if "perm-attr-hash" not in l)
+
+
+def test_missing_hardware_id_defers_to_the_screen_check():
+    # GitHub issue 6: an SD-8501F whose fastboot reports no at-perm-attr-hash.
+    c = ctx(fastboot_runner(NO_HASH))
+    ident = check_fastboot_identity(c, "S1")
+    assert ident.model == "unconfirmed"
+    assert c.state["confirm_screen"] is True
+    assert not any("untested" in line.lower() for line in c.ui.lines)
+    assert any("screen" in line.lower() for line in c.ui.lines)
+
+
+def test_missing_hardware_id_on_another_product_is_still_refused():
     with pytest.raises(UnsupportedDevice):
-        check_fastboot_identity(ctx(fastboot_runner(no_hash)), "S1")
+        check_fastboot_identity(ctx(fastboot_runner(NO_HASH, product="sdm660")), "S1")
+
+
+def test_known_hardware_id_needs_no_screen_check():
+    c = ctx(fastboot_runner())
+    check_fastboot_identity(c, "S1")
+    assert "confirm_screen" not in c.state
 
 
 def test_force_model_allows_with_warning():

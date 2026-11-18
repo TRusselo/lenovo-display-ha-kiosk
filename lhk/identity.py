@@ -3,6 +3,7 @@
 fastboot's product name (msm8x53) is shared with the 10", so the 8" is told
 apart by the AVB permanent-attribute hash in fastboot, and by its 800x1280
 screen once Android runs. Both were read from two real SD-8501F displays.
+A display that reports no hash is checked by its screen instead (RootStep).
 """
 from __future__ import annotations
 
@@ -81,6 +82,16 @@ def check_fastboot_identity(ctx, serial) -> Identity:
     )
     locked = _value(vboot, "avb-locked")
     ident.avb_locked = None if locked == "" else locked == "1"
+    if not ident.perm_attr_hash and ident.product == SUPPORTED["amber"]["product"]:
+        # Some SD-8501Fs report no hardware ID at all (GitHub issue 6). The
+        # flash is the same for either size, so let the screen size decide
+        # once the new system starts, before anything 8"-specific is changed.
+        if not ctx.state.get("confirm_screen"):
+            ctx.ui.say("Note: this display doesn't report its hardware ID, so the model is checked by its "
+                       "screen size once the new system starts.")
+        ctx.state["confirm_screen"] = True
+        ident.model = "unconfirmed"
+        return ident
     ident.model = _model_for("perm_attr_hash", ident.perm_attr_hash) or _unsupported(
         ctx, f"This device's hardware ID ({ident.perm_attr_hash or 'none'}) isn't a known model.")
     return ident

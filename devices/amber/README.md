@@ -68,7 +68,8 @@ its firmware elsewhere.**
 
 1. Unplug the power. Hold **volume down**, plug in the power, and let go after 3 to 5 seconds.
 2. Check the starting state: `fastboot getvar at-vboot-state`. The 8" shows
-   `at-perm-attr-hash=802e273eca8ccaaa69b1623f96cd7e11`.
+   `at-perm-attr-hash=802e273eca8ccaaa69b1623f96cd7e11`. Some 8" displays show no `at-perm-attr-hash`
+   line at all; then the screen size (`adb shell wm size`, `800x1280`) confirms the model after the flash.
 3. Run `python at_auth_unlock.py creds/` from the unzipped AVB unlock folder, with `fastboot` on your PATH.
 
 `fastboot flashing unlock` is refused on this build. That's expected; this step replaces it.

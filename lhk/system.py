@@ -11,6 +11,7 @@ import time
 from pathlib import Path
 
 from lhk.downloads import _repo_file, fetch
+from lhk.identity import check_adb_identity
 from lhk.mixer import patch_mixer
 from lhk.modes import Mode, MultipleDevices, detect
 from lhk.steps import Step
@@ -156,6 +157,8 @@ class RootStep(Step):
     title = "Get root and make /system writable"
 
     def done(self, ctx) -> bool:
+        if ctx.state.get("confirm_screen"):
+            return False
         try:
             return all(_is_root_rw(ctx))
         except Exception:
@@ -163,6 +166,11 @@ class RootStep(Step):
 
     def run(self, ctx) -> None:
         wait_booted(ctx, why="the new system's first start")
+        if ctx.state.get("confirm_screen"):
+            # fastboot gave no hardware ID: the screen size is the model check,
+            # before the mixer, buttons and light sensor are set up for the 8".
+            check_adb_identity(ctx, serial(ctx))
+            ctx.state.pop("confirm_screen")
         adb(ctx, "root")
         wait_booted(ctx, why="adb to restart with root")
         out = adb(ctx, "disable-verity", check=False).out

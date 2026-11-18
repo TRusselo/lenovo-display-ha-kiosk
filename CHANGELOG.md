@@ -2,6 +2,13 @@
 
 What changed for people converting a display. Newest first.
 
+## Unreleased
+
+- **8" displays that don't report a hardware ID no longer need `--force-model`.** One SD-8501F's fastboot
+  gives no `at-perm-attr-hash` (GitHub issue 6). Setup now carries on and checks the model by its screen
+  size once the new system starts, before anything 8"-specific is changed. A different hardware ID is still
+  refused.
+
 ## 0.2.2 (2026-11-17)
 
 - **The mixer check no longer fails on Windows after a good write.** Reading the file back over adb came
