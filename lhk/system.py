@@ -13,7 +13,7 @@ from pathlib import Path
 from lhk.downloads import _repo_file, fetch
 from lhk.identity import check_adb_identity
 from lhk.mixer import patch_mixer
-from lhk.modes import Mode, MultipleDevices, detect
+from lhk.modes import Mode, MultipleDevices, _list, detect
 from lhk.steps import Step
 from lhk.ui import choose
 
@@ -76,15 +76,41 @@ def _booted(ctx) -> bool:
         return False
 
 
-def wait_booted(ctx, timeout=300, why="the display to start") -> None:
-    """Wait until Android has finished starting. Silent when it already has."""
+FELL_BACK = ("The new system didn't start, and the display went back to its old one: adb on the display is "
+             "asking to be allowed, which only the old system does. Nothing more was changed. Please report "
+             "this on GitHub with the log. To put the stock software back fully, run lhk restore with the "
+             "backup.")
+
+
+def _wait_usb(ctx, timeout) -> None:
+    """Like adb wait-for-device, but stops when this display shows up unauthorized. The
+    flashed userdebug system never asks to allow adb, so that means the bootloader gave up on
+    slot A and started the old system on slot B (GitHub issue 6)."""
+    me = ctx.state.get("serial")
+    end = time.monotonic() + timeout
+    while True:
+        if me and me in [s for _, s in _list(ctx.runner, ctx.state["tools"].adb, Mode.ADB, "unauthorized")]:
+            raise SetupFailed(FELL_BACK)
+        if [s for _, s in _list(ctx.runner, ctx.state["tools"].adb, Mode.ADB, "device") if not me or s == me]:
+            return
+        if time.monotonic() > end:
+            raise subprocess.TimeoutExpired("adb wait-for-device", timeout)
+        time.sleep(3)
+
+
+def wait_booted(ctx, timeout=300, why="the display to start", first_start=False) -> None:
+    """Wait until Android has finished starting. Silent when it already has. first_start:
+    right after flashing, when the display can go back to its old system instead."""
     if _booted(ctx):
         return
     tries = 0
     while True:
         with ctx.ui.busy("Waiting for the display on USB") as job:
             try:
-                adb(ctx, "wait-for-device", timeout=timeout)
+                if first_start:
+                    _wait_usb(ctx, timeout)
+                else:
+                    adb(ctx, "wait-for-device", timeout=timeout)
                 break
             except subprocess.TimeoutExpired:
                 job.pause("Not on USB yet")
@@ -165,7 +191,7 @@ class RootStep(Step):
             return False
 
     def run(self, ctx) -> None:
-        wait_booted(ctx, why="the new system's first start")
+        wait_booted(ctx, why="the new system's first start", first_start=True)
         if ctx.state.get("confirm_screen"):
             # fastboot gave no hardware ID: the screen size is the model check,
             # before the mixer, buttons and light sensor are set up for the 8".

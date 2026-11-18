@@ -8,6 +8,9 @@ What changed for people converting a display. Newest first.
   keyboard still didn't show after the restart, and Google's screen covered the Wi-Fi settings while setup
   waited (GitHub issue 5). Setup now asks for the Wi-Fi name and password before opening anything on the
   display; press Enter to join on the display instead. The restart after adding Simple Keyboard is gone.
+- **Setup stops when the new system doesn't start.** On one SD-8501F slot A never finished starting, the
+  display went back to its old system on slot B, and setup waited for it (GitHub issue 6). The old system
+  asks to allow adb and the new one never does, so setup now stops there and says what happened.
 - **adb is stopped when setup, restore or lock ends,** so the `lhk` folder can be deleted on Windows.
   Thanks to scansscans (GitHub issue 5).
 

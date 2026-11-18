@@ -483,3 +483,45 @@ def test_kiosk_satellite_setup_pages_are_a_display_box(tmp_path, monkeypatch):
         kiosk.SettingsStep().run(ctx)
     box = next(l for l in ctx.ui.lines if l.startswith("[physical]"))
     assert "admin password" in box and "Finish" in box
+
+
+# --- issue 6: the new system didn't start and the display went back to stock ---------------
+
+DEVICES = ("devices",)
+
+
+def test_first_start_stops_when_the_display_went_back_to_its_old_system(tmp_path, monkeypatch):
+    # The flashed userdebug system never asks to allow adb; stock does. "unauthorized" for this
+    # display's serial means slot A didn't start and the bootloader went back to slot B.
+    monkeypatch.setattr(system.time, "sleep", lambda s: None)
+    runner = FakeRunner({BOOTED: Result(1, ""),
+                         DEVICES: [Result(0, "List of devices attached\n\n"),
+                                   Result(0, "List of devices attached\nS1\tunauthorized\n\n")]})
+    ctx = sys_ctx(tmp_path, runner, [])
+    with pytest.raises(system.SetupFailed) as e:
+        system.wait_booted(ctx, why="the new system's first start", first_start=True)
+    assert "old system" in str(e.value) and "lhk restore" in str(e.value)
+    assert not [c for c in runner.calls if "wait-for-device" in c]
+
+
+def test_first_start_ignores_another_unauthorized_phone(tmp_path, monkeypatch):
+    monkeypatch.setattr(system.time, "sleep", lambda s: None)
+    runner = FakeRunner({BOOTED: [Result(1, ""), Result(0, "1\n")],
+                         DEVICES: [Result(0, "List of devices attached\nPHONE\tunauthorized\n\n"),
+                                   Result(0, "List of devices attached\nPHONE\tunauthorized\nS1\tdevice\n\n")]})
+    ctx = sys_ctx(tmp_path, runner, [])
+    system.wait_booted(ctx, why="the new system's first start", first_start=True)
+
+
+def test_root_step_watches_for_the_old_system(tmp_path, monkeypatch):
+    seen = {}
+    monkeypatch.setattr(system, "wait_booted", lambda ctx, **kw: seen.setdefault("first", kw))
+    monkeypatch.setattr(system, "adb", lambda *a, **kw: Result(0, "verity is already disabled\n"))
+    monkeypatch.setattr(system, "_is_root_rw", lambda ctx: (True, True))
+    runner = FakeRunner()
+    ctx = sys_ctx(tmp_path, runner, [])
+    try:
+        system.RootStep().run(ctx)
+    except Exception:
+        pass
+    assert seen["first"].get("first_start") is True
