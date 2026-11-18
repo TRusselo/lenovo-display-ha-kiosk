@@ -2,6 +2,7 @@
 de-Google, mic gain."""
 from __future__ import annotations
 
+import hashlib
 import re
 import subprocess
 import tempfile
@@ -307,8 +308,14 @@ class DegoogleStep(Step):
 
 
 def _verify_pushed(ctx, expected: str) -> None:
-    if shell(ctx, "cat", MIXER_PATH) != expected:
-        raise SetupFailed("The mixer file on the display doesn't match what was written.")
+    """Checksum the file on the display. Reading it back over adb isn't byte-exact: on
+    Windows the read-back came with CR LF line endings that weren't written (GitHub issue 5)."""
+    want = hashlib.md5(expected.encode("utf-8")).hexdigest()
+    out = shell(ctx, "md5sum", MIXER_PATH).split()
+    got = out[0].lower() if out else "(none)"
+    if got != want:
+        raise SetupFailed(f"The mixer file on the display doesn't match what was written (MD5 on the "
+                          f"display {got}, written {want}).")
 
 
 class MixerStep(Step):

@@ -324,3 +324,28 @@ def test_final_check_that_fails_keeps_the_backup_folder(tmp_path, monkeypatch):
     monkeypatch.setattr(backup, "drop_folder", lambda ctx, out: pytest.fail("removed the folder"))
     with pytest.raises(system.SetupFailed):
         plan.VerifyStep().run(make_ctx(tmp_path, runner))
+
+
+def test_mixer_verify_compares_checksum_on_the_display(tmp_path):
+    # GitHub issue 5: on Windows, reading the file back over adb came with CR LF line
+    # endings that weren't written, so a byte compare of the read-back failed.
+    import hashlib
+    patched = patch_mixer(MIXER)
+    md5 = hashlib.md5(patched.encode("utf-8")).hexdigest()
+    runner = FakeRunner({("-s", "S1", "shell", "md5sum", system.MIXER_PATH):
+                         Result(0, f"{md5}  {system.MIXER_PATH}\r\n")})
+    ctx = make_ctx(tmp_path, runner)
+    system._verify_pushed(ctx, patched)
+    assert not [c for c in runner.calls if c[3:5] == ["shell", "cat"]]
+
+
+def test_mixer_verify_names_both_checksums_on_mismatch(tmp_path):
+    import hashlib
+    patched = patch_mixer(MIXER)
+    md5 = hashlib.md5(patched.encode("utf-8")).hexdigest()
+    runner = FakeRunner({("-s", "S1", "shell", "md5sum", system.MIXER_PATH):
+                         Result(0, f"{'0' * 32}  {system.MIXER_PATH}\n")})
+    ctx = make_ctx(tmp_path, runner)
+    with pytest.raises(system.SetupFailed) as e:
+        system._verify_pushed(ctx, patched)
+    assert md5 in str(e.value) and "0" * 32 in str(e.value)

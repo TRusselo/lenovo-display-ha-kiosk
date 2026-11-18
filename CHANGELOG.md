@@ -2,6 +2,12 @@
 
 What changed for people converting a display. Newest first.
 
+## Unreleased
+
+- **The mixer check no longer fails on Windows after a good write.** Reading the file back over adb came
+  with Windows line endings that weren't written (GitHub issue 5). Setup now compares a checksum taken on
+  the display instead.
+
 ## 0.2.1 (2026-11-17)
 
 - **Only the zip is kept.** After a successful setup, the backup folder is removed once the zip next to it is
