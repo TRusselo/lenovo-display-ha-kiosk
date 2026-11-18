@@ -28,11 +28,36 @@ are switched off.
 |    | Display | Model | Status |
 |----|---------|-------|--------|
 | ✅ | Lenovo Smart Display 8 | SD-8501F | **Supported**, tested on two displays. [Device notes](devices/amber/README.md) |
-| ⚠️ | Lenovo Smart Display 10 | SD-X701B | **Not supported.** Same firmware family, so `--force-model` may get partway; the sound, buttons and light sensor fixes are for the 8". [Notes](devices/README.md) |
+| ⚠️ | Lenovo Smart Display 10 | SD-X701B | **Works with `--force-model`**, reported by one user on two runs ([#5](https://github.com/TRusselo/lenovo-display-ha-kiosk/issues/5)). Not tested by the author. [Notes](devices/README.md) |
+| ❓ | Lenovo Smart Display M10 (Japan) | SD-X501F | **Not tried.** A 10" board with the 8" screen and no speaker amplifier ([#4](https://github.com/TRusselo/lenovo-display-ha-kiosk/issues/4)). |
 | ❌ | Lenovo Smart Display 7 | CD-17302F | **Not supported.** Different firmware: don't use `--force-model` on it. |
 
-The tool checks the model and refuses anything but the 8". `--force-model` skips that check, for the 10" only,
-at your own risk.
+What has been seen working on each:
+
+| | SD-8501F (8") | SD-X701B (10") | SD-X501F (M10) |
+|---|:-:|:-:|:-:|
+| Backup and restore (EDL) | ✅ | ✅ | ❓ backup read by another project |
+| Model check | ✅ | ⚠️ needs `--force-model` | ⚠️ needs `--force-model` |
+| Flash and boot | ✅ | ✅ | ❓ |
+| Kiosk Satellite | ✅ | ✅ | ❓ |
+| Microphone gain (mixer) | ✅ | ✅ | ❓ |
+| Speaker | ✅ | not reported | ❌ no amplifier |
+| Volume buttons | ✅ | ✅ | ❓ |
+| Light sensor (screen brightness) | ✅ | ✅ | ❓ |
+| On-screen keyboard for Wi-Fi | ✅ | ⚠️ only after a restart; 0.2.2 restarts, or joins Wi-Fi from the computer (untested) | ❓ |
+
+✅ works, ⚠️ works with a caveat, ❓ not tried, ❌ doesn't work. If you've run it on another display, or
+filled in a ❓, please [open an issue](https://github.com/TRusselo/lenovo-display-ha-kiosk/issues).
+
+The tool checks the model and refuses anything but the 8". `--force-model` skips that check, for the 10"
+models only, at your own risk. Follow the [Quick start](#quick-start) below, adding it to the setup command:
+
+- Windows: `lhk\lhk setup --force-model`
+- Mac and Linux: `./lhk/lhk setup --force-model`
+
+Setup warns that the model is untested and carries on. Keep the backup it makes. If no keyboard appears for
+the Wi-Fi password, setup offers to join Wi-Fi from the computer: type the network name and password in the
+terminal.
 
 ## What you get
 
