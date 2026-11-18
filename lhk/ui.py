@@ -357,12 +357,16 @@ class UI:
             self.stdout.write(" done\n" if ok else " stopped\n")
             self.stdout.flush()
 
-    def ask(self, text: str) -> str:
+    def ask(self, text: str, secret: bool = False) -> str:
         self._end_status()
         self._users_turn()
         if self._live():
             # Your turn: yellow, like the boxes, wrapped to the terminal.
             text = f"{_YELLOW}{self._buttons(self._wrap(text.rstrip(' ')), _YELLOW)}{_RESET} "
+        if secret and self.stdin.isatty():
+            # Not echoed, so it can't end up in a screenshot of the terminal.
+            import getpass
+            return getpass.getpass(text, stream=self.stdout)
         self.stdout.write(text)
         self.stdout.flush()
         line = self.stdin.readline()

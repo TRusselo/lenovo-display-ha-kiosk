@@ -7,6 +7,11 @@ What changed for people converting a display. Newest first.
 - **The mixer check no longer fails on Windows after a good write.** Reading the file back over adb came
   with Windows line endings that weren't written (GitHub issue 5). Setup now compares a checksum taken on
   the display instead.
+- **Untested models (`--force-model`): the on-screen keyboard, and Wi-Fi without it.** On an SD-X701B no
+  keyboard showed for the Wi-Fi password until the display had restarted, so setup now restarts it after
+  adding Simple Keyboard. If there's still no keyboard, setup offers to join Wi-Fi from the computer: type
+  the Wi-Fi name and password in the terminal. The password isn't shown, saved or logged. Thanks to
+  scansscans (GitHub issue 5).
 
 ## 0.2.1 (2026-11-17)
 

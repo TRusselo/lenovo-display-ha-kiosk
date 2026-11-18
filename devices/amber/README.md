@@ -155,6 +155,9 @@ adb shell ime set rkr.simplekeyboard.inputmethod/.latin.LatinIME
 **Check:** `adb shell settings get secure default_input_method` prints
 `rkr.simplekeyboard.inputmethod/.latin.LatinIME`.
 
+Then setup restarts the display (`adb reboot`): on the SD-X701B no on-screen keyboard showed, not even the
+built-in one, until the display had restarted once after flashing.
+
 ## 9. `things-settings`: Wi-Fi and time zone, on the display
 
 After flashing, the screen shows a Google spinner. Open the Android Things settings:
@@ -167,6 +170,16 @@ On the display:
 - **Networks:** pick your Wi-Fi, and type the password on the on-screen keyboard.
 - **☰ > System > Date & time:** pick your **real** time zone.
 - **Don't press Check for update or Factory data reset.**
+
+**If no keyboard appears (untested models):** setup offers to join Wi-Fi from the computer instead. Type
+the Wi-Fi name and password in the terminal; the password isn't shown, saved or logged. It uses
+[adb-join-wifi](https://github.com/steinwurf/adb-join-wifi) (release 1.0.1, BSD-3-Clause), which stays
+installed: Android forgets the networks an app added when that app is removed. By hand:
+
+```bash
+adb install -r adb-join-wifi.apk
+adb shell am start -n com.steinwurf.adbjoinwifi/.MainActivity -e ssid 'Your Wi-Fi' -e password_type WPA -e password 'its password'
+```
 
 **Check:** `adb shell ip -4 addr show wlan0` shows an `inet` address.
 

@@ -104,6 +104,14 @@
       "size": 630327,
       "unpack": null,
       "platform": null
+    },
+    {
+      "id": "adb-join-wifi",
+      "url": "https://github.com/steinwurf/adb-join-wifi/releases/download/1.0.1/adb-join-wifi.apk",
+      "sha256": "9b3da6c8753f92c547642be83ce89e20821e36fe818355f635989e0772a13580",
+      "size": 1509135,
+      "unpack": null,
+      "platform": null
     }
   ]
 }

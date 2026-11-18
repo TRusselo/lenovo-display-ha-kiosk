@@ -23,15 +23,19 @@ class CommandFailed(Exception):
 class RealRunner:
     """Runs commands and writes each one, with its exit code and output, to the
     run log (redacted). log_output=False keeps a command's output out of the log,
-    for reads that return secrets."""
+    for reads that return secrets; hide= masks values, such as a Wi-Fi password, in
+    the logged command line."""
 
     def __init__(self, logger=None):
         self.logger = logger
 
-    def run(self, args, *, check=True, timeout=60, env=None, log_output=True) -> Result:
+    def run(self, args, *, check=True, timeout=60, env=None, log_output=True, hide=()) -> Result:
         argv = [str(a) for a in args]
         if self.logger:
-            self.logger.info("$ %s", " ".join(argv))
+            shown_cmd = " ".join(argv)
+            for h in sorted((h for h in hide if h), key=len, reverse=True):
+                shown_cmd = shown_cmd.replace(h, "***")
+            self.logger.info("$ %s", shown_cmd)
         p = subprocess.run(argv, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                            stdin=subprocess.DEVNULL, timeout=timeout, env=env)
         result = Result(p.returncode, p.stdout.decode("utf-8", "replace"))

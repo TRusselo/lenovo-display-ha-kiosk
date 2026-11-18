@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+import shlex
 import subprocess
 import tempfile
 import time
@@ -55,7 +56,10 @@ def serial(ctx) -> str:
     return ctx.state["serial"]
 
 
-def adb(ctx, *args, check=True, timeout=120, log_output=True):
+def adb(ctx, *args, check=True, timeout=120, log_output=True, hide=()):
+    if hide:
+        return ctx.runner.run([ctx.state["tools"].adb, "-s", serial(ctx), *args],
+                              check=check, timeout=timeout, log_output=log_output, hide=hide)
     return ctx.runner.run([ctx.state["tools"].adb, "-s", serial(ctx), *args],
                           check=check, timeout=timeout, log_output=log_output)
 
@@ -222,6 +226,8 @@ class OpenThingsSettingsStep(Step):
                         "list, pick any: you can type the right one here afterwards.\n"
                         "  2. Networks: pick your Wi-Fi and type its password on the on-screen keyboard.\n"
                         "Don't press Check for update or Factory data reset on that page.")
+        if ctx.state.get("force_model"):
+            self._offer_join(ctx)
         end = time.monotonic() + 15 * 60
         while not self._ip(ctx):
             if time.monotonic() > end:
@@ -233,6 +239,24 @@ class OpenThingsSettingsStep(Step):
             time.sleep(3)
         ctx.ui.say("Wi-Fi connected.")
         self._ask_zone(ctx)
+
+    def _offer_join(self, ctx) -> None:
+        """Untested models: on an SD-X701B no on-screen keyboard showed at this point (GitHub
+        issue 5), so the Wi-Fi name and password can be typed here instead."""
+        while not self._ip(ctx):
+            ssid = ctx.ui.ask("If no keyboard appears when you tap the password box, type your Wi-Fi name "
+                              "here to join from this computer. Otherwise press Enter: ").strip()
+            if not ssid:
+                return
+            password = ctx.ui.ask("Its password (leave empty for an open network; it isn't saved or "
+                                  "logged): ", secret=True)
+            join_wifi(ctx, ssid, password)
+            end = time.monotonic() + 60
+            while not self._ip(ctx) and time.monotonic() < end:
+                time.sleep(3)
+            if not self._ip(ctx):
+                ctx.ui.say(f"The display hasn't joined {ssid} yet. Check the name and password, and that "
+                           "it's a 2.4 or 5 GHz WPA network, then try again.")
 
     def _ask_zone(self, ctx) -> None:
         # The picker is a fixed list: it lacks zones such as America/Edmonton.
@@ -251,6 +275,30 @@ class OpenThingsSettingsStep(Step):
         shell(ctx, "setprop", "persist.sys.timezone", zone)
         ctx.ui.keep(f"Time zone set to {zone}. It takes effect when the display restarts, which this tool "
                    "does near the end. Don't pick a zone in the list again, or it replaces this one.")
+
+
+JOIN_WIFI = "com.steinwurf.adbjoinwifi/.MainActivity"
+
+
+def join_wifi(ctx, ssid: str, password: str) -> None:
+    """Join Wi-Fi with steinwurf/adb-join-wifi (BSD-3-Clause). It stays installed: Android
+    forgets the networks an app added when that app is removed. Never made device owner:
+    Kiosk Satellite needs that."""
+    apk = fetch("adb-join-wifi", ctx)
+    with ctx.ui.busy("Installing adb-join-wifi"):
+        adb(ctx, "install", "-r", str(apk), timeout=300)
+    # adb joins these into one command line for the display's shell, so each value is quoted.
+    args = ["am", "start", "-n", JOIN_WIFI, "-e", "ssid", shlex.quote(ssid)]
+    hide = []
+    if password:
+        args += ["-e", "password_type", "WPA", "-e", "password", shlex.quote(password)]
+        hide = [shlex.quote(password), password]
+    # check=False: a failure's message would carry the command line, password included.
+    r = adb(ctx, "shell", *args, check=False, hide=hide)
+    if r.code != 0:
+        raise SetupFailed("adb-join-wifi didn't start. Join Wi-Fi on the display instead, or report "
+                          "this on GitHub with the log.")
+    ctx.ui.say(f"Asked the display to join {ssid}. It can take up to a minute.")
 
 
 IME = "rkr.simplekeyboard.inputmethod/.latin.LatinIME"
@@ -280,6 +328,10 @@ class KeyboardStep(Step):
         if not self.done(ctx):
             raise SetupFailed("Simple Keyboard installed, but Android didn't switch to it. Please report "
                               "this on GitHub, with the log.")
+        # On an SD-X701B no on-screen keyboard showed, not even the built-in one, until the
+        # display had restarted (GitHub issue 5).
+        ctx.ui.say("Restarting the display, so the keyboard shows. This takes a minute or two.")
+        reboot_and_wait(ctx, why="the display to restart with the keyboard")
 
 
 class DegoogleStep(Step):

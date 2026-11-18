@@ -37,6 +37,7 @@ class DownloadsStep(Step):
             fetch(id_, ctx)
         if ctx.state.get("force_model"):
             fetch("simple-keyboard", ctx)       # untested models may have no keyboard (KeyboardStep)
+            fetch("adb-join-wifi", ctx)         # or join Wi-Fi from the computer (OpenThingsSettingsStep)
         # Before the display is touched, so a GitHub limit or outage can't stop
         # the run halfway through the conversion.
         with ctx.ui.busy("Setting up edl"):

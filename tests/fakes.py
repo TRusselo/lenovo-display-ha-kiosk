@@ -18,11 +18,13 @@ class FakeRunner:
         self.default = default
         self.calls: list[list[str]] = []
         self.envs: list[dict | None] = []
+        self.hidden: list[list[str]] = []
 
-    def run(self, args, *, check=True, timeout=60, env=None, log_output=True):
+    def run(self, args, *, check=True, timeout=60, env=None, log_output=True, hide=()):
         args = [str(a) for a in args]
         self.calls.append(args)
         self.envs.append(env)
+        self.hidden.append(list(hide))
         tail = tuple(args[1:])
         best = None
         for key in self.responses:
@@ -98,7 +100,7 @@ class FakeUI:
             self.lines.append(f"[done] {job.final}")
 
 
-    def ask(self, text):
+    def ask(self, text, secret=False):
         self.lines.append(f"[ask] {text}")
         return self.answers.pop(0) if self.answers else ""
 

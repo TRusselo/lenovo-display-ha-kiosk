@@ -205,6 +205,7 @@ def test_keyboard_installed_on_a_forced_model_without_one(tmp_path, monkeypatch)
             [Result(0, "null\n"), Result(0, system.IME + "\n")],
     })
     ctx = _kb_ctx(tmp_path, runner, force=True)
+    monkeypatch.setattr(system, "reboot_and_wait", lambda ctx, **kw: None)
     step = system.KeyboardStep()
     assert not step.done(ctx)
     step.run(ctx)
@@ -217,3 +218,88 @@ def test_keyboard_installed_on_a_forced_model_without_one(tmp_path, monkeypatch)
 def test_manifest_pins_simple_keyboard():
     e = load_manifest()["simple-keyboard"]
     assert e["url"].startswith("https://github.com/rkkr/simple-keyboard/") and len(e["sha256"]) == 64
+
+
+def test_keyboard_step_restarts_the_display_after_setting_it(tmp_path, monkeypatch):
+    # Issue 5: on an SD-X701B no on-screen keyboard showed until the display had restarted.
+    apk = tmp_path / "app-release.apk"
+    apk.write_bytes(b"PK")
+    monkeypatch.setattr(system, "fetch", lambda id_, ctx: apk)
+    runner = FakeRunner({("-s", "S1", "shell", "settings", "get", "secure", "default_input_method"):
+                         Result(0, system.IME + "\n")})
+    ctx = _kb_ctx(tmp_path, runner, force=True)
+    order = []
+    monkeypatch.setattr(system, "reboot_and_wait", lambda ctx, **kw: order.append(len(runner.calls)))
+    system.KeyboardStep().run(ctx)
+    assert order, "the display wasn't restarted"
+    ime_set = [i for i, c in enumerate(runner.calls) if c[3:6] == ["shell", "ime", "set"]][0]
+    assert order[0] > ime_set
+
+
+def _wifi_ctx(tmp_path, runner, force, answers):
+    ctx = _kb_ctx(tmp_path, runner, force)
+    ctx.ui = FakeUI(answers)
+    return ctx
+
+
+IP = ("-s", "S1", "shell", "ip", "-4", "addr", "show", "wlan0")
+JOINED = Result(0, "    inet 10.0.0.5/24 brd 10.0.0.255 scope global wlan0\n")
+
+
+def test_forced_model_can_join_wifi_from_the_computer(tmp_path, monkeypatch):
+    apk = tmp_path / "adb-join-wifi.apk"
+    apk.write_bytes(b"PK")
+    monkeypatch.setattr(system, "fetch", lambda id_, ctx: apk if id_ == "adb-join-wifi" else None)
+    monkeypatch.setattr(system.time, "sleep", lambda s: None)
+    runner = FakeRunner({IP: [Result(0, ""), Result(0, ""), JOINED]})
+    ctx = _wifi_ctx(tmp_path, runner, True, ["My Home", "pa ss'word", ""])
+    system.OpenThingsSettingsStep().run(ctx)
+    tails = [c[3:] for c in runner.calls]
+    assert ["install", "-r", str(apk)] in tails
+    start = [t for t in tails if t[:3] == ["shell", "am", "start"]][0]
+    # adb joins its arguments into one command line for the display's shell: quoted.
+    assert start == ["shell", "am", "start", "-n", system.JOIN_WIFI, "-e", "ssid", "'My Home'",
+                     "-e", "password_type", "WPA", "-e", "password", "'pa ss'\"'\"'word'"]
+    i = runner.calls.index(next(c for c in runner.calls if c[3:6] == ["shell", "am", "start"]))
+    assert "pa ss'word" in runner.hidden[i]
+    assert any("Wi-Fi connected" in l for l in ctx.ui.lines)
+
+
+def test_password_is_never_shown_in_the_log(tmp_path):
+    import logging
+    import sys
+    from lhk.runner import RealRunner
+    records = []
+
+    class Catch(logging.Handler):
+        def emit(self, record):
+            records.append(record.getMessage())
+    logger = logging.getLogger("lhk.test-hide")
+    logger.handlers[:] = [Catch()]
+    logger.setLevel(logging.DEBUG)
+    RealRunner(logger).run([sys.executable, "-c", "pass", "hunter2"], hide=["hunter2"])
+    assert records and not any("hunter2" in r for r in records)
+
+
+def test_forced_model_can_still_use_the_on_screen_keyboard(tmp_path, monkeypatch):
+    monkeypatch.setattr(system.time, "sleep", lambda s: None)
+    runner = FakeRunner({IP: [Result(0, ""), JOINED]})
+    ctx = _wifi_ctx(tmp_path, runner, True, [""])
+    system.OpenThingsSettingsStep().run(ctx)
+    assert not [c for c in runner.calls if c[3:5] == ["shell", "am"]]
+    assert any("Wi-Fi connected" in l for l in ctx.ui.lines)
+
+
+def test_supported_model_isnt_asked_about_joining_from_the_computer(tmp_path, monkeypatch):
+    monkeypatch.setattr(system.time, "sleep", lambda s: None)
+    runner = FakeRunner({IP: [Result(0, ""), JOINED]})
+    ctx = _wifi_ctx(tmp_path, runner, False, [""])
+    system.OpenThingsSettingsStep().run(ctx)
+    asks = [l for l in ctx.ui.lines if l.startswith("[ask]")]
+    assert not any("Wi-Fi name" in a for a in asks)
+
+
+def test_manifest_pins_adb_join_wifi():
+    e = load_manifest()["adb-join-wifi"]
+    assert e["url"] == "https://github.com/steinwurf/adb-join-wifi/releases/download/1.0.1/adb-join-wifi.apk"
+    assert e["sha256"] == "9b3da6c8753f92c547642be83ce89e20821e36fe818355f635989e0772a13580"
