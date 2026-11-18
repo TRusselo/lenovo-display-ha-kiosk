@@ -2,7 +2,7 @@
 
 What changed for people converting a display. Newest first.
 
-## Unreleased
+## 0.2.4 (2026-11-18)
 
 - **Untested models (`--force-model`): Wi-Fi is asked in the terminal first.** On an SD-X701B the
   keyboard still didn't show after the restart, and Google's screen covered the Wi-Fi settings while setup
