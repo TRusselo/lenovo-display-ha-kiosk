@@ -2,7 +2,7 @@
 
 What changed for people converting a display. Newest first.
 
-## Unreleased
+## 0.2.2 (2026-11-17)
 
 - **The mixer check no longer fails on Windows after a good write.** Reading the file back over adb came
   with Windows line endings that weren't written (GitHub issue 5). Setup now compares a checksum taken on
@@ -12,6 +12,8 @@ What changed for people converting a display. Newest first.
   adding Simple Keyboard. If there's still no keyboard, setup offers to join Wi-Fi from the computer: type
   the Wi-Fi name and password in the terminal. The password isn't shown, saved or logged. Thanks to
   scansscans (GitHub issue 5).
+- **The "already unlocked" warning says what to do on a display that ran LANovo** or another custom
+  system: type `flash`. There's no need to move or rename the backup.
 
 ## 0.2.1 (2026-11-17)
 

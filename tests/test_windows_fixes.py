@@ -206,6 +206,7 @@ def test_keyboard_installed_on_a_forced_model_without_one(tmp_path, monkeypatch)
     })
     ctx = _kb_ctx(tmp_path, runner, force=True)
     monkeypatch.setattr(system, "reboot_and_wait", lambda ctx, **kw: None)
+    monkeypatch.setattr(system, "ensure_root_rw", lambda ctx: None)
     step = system.KeyboardStep()
     assert not step.done(ctx)
     step.run(ctx)
@@ -230,6 +231,7 @@ def test_keyboard_step_restarts_the_display_after_setting_it(tmp_path, monkeypat
     ctx = _kb_ctx(tmp_path, runner, force=True)
     order = []
     monkeypatch.setattr(system, "reboot_and_wait", lambda ctx, **kw: order.append(len(runner.calls)))
+    monkeypatch.setattr(system, "ensure_root_rw", lambda ctx: None)
     system.KeyboardStep().run(ctx)
     assert order, "the display wasn't restarted"
     ime_set = [i for i, c in enumerate(runner.calls) if c[3:6] == ["shell", "ime", "set"]][0]
@@ -303,3 +305,30 @@ def test_manifest_pins_adb_join_wifi():
     e = load_manifest()["adb-join-wifi"]
     assert e["url"] == "https://github.com/steinwurf/adb-join-wifi/releases/download/1.0.1/adb-join-wifi.apk"
     assert e["sha256"] == "9b3da6c8753f92c547642be83ce89e20821e36fe818355f635989e0772a13580"
+
+
+def test_root_is_back_after_the_keyboard_restart(tmp_path, monkeypatch):
+    # adb root doesn't survive a restart, and the time zone step after it needs root.
+    apk = tmp_path / "app-release.apk"
+    apk.write_bytes(b"PK")
+    monkeypatch.setattr(system, "fetch", lambda id_, ctx: apk)
+    runner = FakeRunner({("-s", "S1", "shell", "settings", "get", "secure", "default_input_method"):
+                         Result(0, system.IME + "\n")})
+    ctx = _kb_ctx(tmp_path, runner, force=True)
+    order = []
+    monkeypatch.setattr(system, "reboot_and_wait", lambda ctx, **kw: order.append("restart"))
+    monkeypatch.setattr(system, "ensure_root_rw", lambda ctx: order.append("root"))
+    system.KeyboardStep().run(ctx)
+    assert order == ["restart", "root"]
+
+
+def test_join_timeout_never_shows_the_password(tmp_path, monkeypatch):
+    import subprocess
+    apk = tmp_path / "adb-join-wifi.apk"
+    apk.write_bytes(b"PK")
+    monkeypatch.setattr(system, "fetch", lambda id_, ctx: apk)
+    runner = FakeRunner({("-s", "S1", "shell", "am"): subprocess.TimeoutExpired(["am", "hunter2"], 120)})
+    ctx = _kb_ctx(tmp_path, runner, force=True)
+    with pytest.raises(system.SetupFailed) as e:
+        system.join_wifi(ctx, "Net", "hunter2")
+    assert "hunter2" not in str(e.value) and "hunter2" not in repr(e.value.__cause__)

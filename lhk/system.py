@@ -294,10 +294,14 @@ def join_wifi(ctx, ssid: str, password: str) -> None:
         args += ["-e", "password_type", "WPA", "-e", "password", shlex.quote(password)]
         hide = [shlex.quote(password), password]
     # check=False: a failure's message would carry the command line, password included.
-    r = adb(ctx, "shell", *args, check=False, hide=hide)
-    if r.code != 0:
+    try:
+        r = adb(ctx, "shell", *args, check=False, hide=hide)
+    except subprocess.TimeoutExpired:
+        # Its message carries the command line, password included: never pass it on.
+        r = None
+    if r is None or r.code != 0:
         raise SetupFailed("adb-join-wifi didn't start. Join Wi-Fi on the display instead, or report "
-                          "this on GitHub with the log.")
+                          "this on GitHub with the log.") from None
     ctx.ui.say(f"Asked the display to join {ssid}. It can take up to a minute.")
 
 
@@ -332,6 +336,7 @@ class KeyboardStep(Step):
         # display had restarted (GitHub issue 5).
         ctx.ui.say("Restarting the display, so the keyboard shows. This takes a minute or two.")
         reboot_and_wait(ctx, why="the display to restart with the keyboard")
+        ensure_root_rw(ctx)         # adb root doesn't survive a restart; the time zone step needs it
 
 
 class DegoogleStep(Step):

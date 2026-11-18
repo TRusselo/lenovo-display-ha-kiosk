@@ -245,3 +245,9 @@ def test_unlocked_without_a_backup_this_run_still_asks(tmp_path, monkeypatch):
     monkeypatch.setattr(flash, "prepare_images", lambda ctx: fake_images(tmp_path))
     FlashStep().run(ctx)
     assert any(l.startswith("[ask]") and "flash" in l for l in ctx.ui.lines)
+
+
+def test_wipe_warning_says_what_to_do_after_lanovo():
+    # Issue 5: a display that ran LANovo hit this, and its owner renamed the backup instead.
+    from lhk.flash import WIPE_WARNING
+    assert "LANovo" in WIPE_WARNING and "type flash" in WIPE_WARNING

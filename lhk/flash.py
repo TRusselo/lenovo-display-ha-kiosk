@@ -21,7 +21,9 @@ from lhk.unlock import FASTBOOT_PROMPT
 
 RETRIES = 3
 WIPE_WARNING = ("This display's verified boot was already unlocked before this run, so it may already "
-                "be converted. Flashing erases its setup: Kiosk Satellite, Wi-Fi and everything on it.")
+                "be converted. Flashing erases its setup: Kiosk Satellite, Wi-Fi and everything on it. "
+                "If it runs LANovo or another custom system you mean to replace, type flash: there's no "
+                "need to move or rename the backup.")
 
 
 class ForbiddenCommand(Exception):

@@ -178,7 +178,7 @@ installed: Android forgets the networks an app added when that app is removed. B
 
 ```bash
 adb install -r adb-join-wifi.apk
-adb shell am start -n com.steinwurf.adbjoinwifi/.MainActivity -e ssid 'Your Wi-Fi' -e password_type WPA -e password 'its password'
+adb shell "am start -n com.steinwurf.adbjoinwifi/.MainActivity -e ssid 'Your Wi-Fi' -e password_type WPA -e password 'its password'"
 ```
 
 **Check:** `adb shell ip -4 addr show wlan0` shows an `inet` address.
