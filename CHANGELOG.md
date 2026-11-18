@@ -2,6 +2,15 @@
 
 What changed for people converting a display. Newest first.
 
+## Unreleased
+
+- **Untested models (`--force-model`): Wi-Fi is asked in the terminal first.** On an SD-X701B the
+  keyboard still didn't show after the restart, and Google's screen covered the Wi-Fi settings while setup
+  waited (GitHub issue 5). Setup now asks for the Wi-Fi name and password before opening anything on the
+  display; press Enter to join on the display instead. The restart after adding Simple Keyboard is gone.
+- **adb is stopped when setup, restore or lock ends,** so the `lhk` folder can be deleted on Windows.
+  Thanks to scansscans (GitHub issue 5).
+
 ## 0.2.3 (2026-11-18)
 
 - **8" displays that don't report a hardware ID no longer need `--force-model`.** One SD-8501F's fastboot

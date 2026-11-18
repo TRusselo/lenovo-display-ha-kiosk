@@ -221,21 +221,20 @@ def test_manifest_pins_simple_keyboard():
     assert e["url"].startswith("https://github.com/rkkr/simple-keyboard/") and len(e["sha256"]) == 64
 
 
-def test_keyboard_step_restarts_the_display_after_setting_it(tmp_path, monkeypatch):
-    # Issue 5: on an SD-X701B no on-screen keyboard showed until the display had restarted.
+def test_keyboard_step_doesnt_restart_the_display(tmp_path, monkeypatch):
+    # Issue 5: on 0.2.3 the restart didn't bring the keyboard on an SD-X701B, and Google's
+    # screen covered the Wi-Fi settings after it. Wi-Fi is now asked in the terminal first.
     apk = tmp_path / "app-release.apk"
     apk.write_bytes(b"PK")
     monkeypatch.setattr(system, "fetch", lambda id_, ctx: apk)
     runner = FakeRunner({("-s", "S1", "shell", "settings", "get", "secure", "default_input_method"):
                          Result(0, system.IME + "\n")})
     ctx = _kb_ctx(tmp_path, runner, force=True)
-    order = []
-    monkeypatch.setattr(system, "reboot_and_wait", lambda ctx, **kw: order.append(len(runner.calls)))
-    monkeypatch.setattr(system, "ensure_root_rw", lambda ctx: None)
+    restarts = []
+    monkeypatch.setattr(system, "reboot_and_wait", lambda ctx, **kw: restarts.append(1))
     system.KeyboardStep().run(ctx)
-    assert order, "the display wasn't restarted"
-    ime_set = [i for i, c in enumerate(runner.calls) if c[3:6] == ["shell", "ime", "set"]][0]
-    assert order[0] > ime_set
+    assert restarts == []
+    assert not [c for c in runner.calls if "reboot" in c]
 
 
 def _wifi_ctx(tmp_path, runner, force, answers):
@@ -265,6 +264,8 @@ def test_forced_model_can_join_wifi_from_the_computer(tmp_path, monkeypatch):
     i = runner.calls.index(next(c for c in runner.calls if c[3:6] == ["shell", "am", "start"]))
     assert "pa ss'word" in runner.hidden[i]
     assert any("Wi-Fi connected" in l for l in ctx.ui.lines)
+    # Joined from the terminal: the settings never open, so nothing can cover them.
+    assert not [c for c in runner.calls if "monkey" in c]
 
 
 def test_password_is_never_shown_in_the_log(tmp_path):
@@ -285,11 +286,36 @@ def test_password_is_never_shown_in_the_log(tmp_path):
 
 def test_forced_model_can_still_use_the_on_screen_keyboard(tmp_path, monkeypatch):
     monkeypatch.setattr(system.time, "sleep", lambda s: None)
-    runner = FakeRunner({IP: [Result(0, ""), JOINED]})
+    runner = FakeRunner({IP: [Result(0, ""), Result(0, ""), JOINED]})
     ctx = _wifi_ctx(tmp_path, runner, True, [""])
     system.OpenThingsSettingsStep().run(ctx)
     assert not [c for c in runner.calls if c[3:5] == ["shell", "am"]]
     assert any("Wi-Fi connected" in l for l in ctx.ui.lines)
+
+
+def test_forced_model_asks_for_wifi_before_opening_the_settings(tmp_path, monkeypatch):
+    # Issue 5: the question waited in the terminal while Google's screen covered the settings.
+    monkeypatch.setattr(system.time, "sleep", lambda s: None)
+    runner = FakeRunner({IP: [Result(0, ""), Result(0, ""), JOINED]})
+    ctx = _wifi_ctx(tmp_path, runner, True, [""])
+    seen = []
+    ask = ctx.ui.ask
+    ctx.ui.ask = lambda text, secret=False: (seen.append(len(runner.calls)), ask(text, secret))[1]
+    system.OpenThingsSettingsStep().run(ctx)
+    monkey = [i for i, c in enumerate(runner.calls) if "monkey" in c]
+    assert monkey and seen[0] <= monkey[0]
+    asks = [l for l in ctx.ui.lines if l.startswith("[ask]")]
+    assert "Wi-Fi name" in asks[0]
+
+
+def test_covered_settings_reopen_after_choosing_the_display(tmp_path, monkeypatch):
+    monkeypatch.setattr(system.time, "sleep", lambda s: None)
+    covered = Result(0, f"  mCurrentFocus=Window{{1 u0 {system.GALLIUM}/.Main}}\n")
+    runner = FakeRunner({IP: [Result(0, ""), Result(0, ""), Result(0, ""), JOINED],
+                         ("-s", "S1", "shell", "dumpsys", "window"): [covered, Result(0, "")]})
+    ctx = _wifi_ctx(tmp_path, runner, True, [""])
+    system.OpenThingsSettingsStep().run(ctx)
+    assert len([c for c in runner.calls if "monkey" in c]) == 2
 
 
 def test_supported_model_isnt_asked_about_joining_from_the_computer(tmp_path, monkeypatch):
@@ -307,21 +333,6 @@ def test_manifest_pins_adb_join_wifi():
     assert e["sha256"] == "9b3da6c8753f92c547642be83ce89e20821e36fe818355f635989e0772a13580"
 
 
-def test_root_is_back_after_the_keyboard_restart(tmp_path, monkeypatch):
-    # adb root doesn't survive a restart, and the time zone step after it needs root.
-    apk = tmp_path / "app-release.apk"
-    apk.write_bytes(b"PK")
-    monkeypatch.setattr(system, "fetch", lambda id_, ctx: apk)
-    runner = FakeRunner({("-s", "S1", "shell", "settings", "get", "secure", "default_input_method"):
-                         Result(0, system.IME + "\n")})
-    ctx = _kb_ctx(tmp_path, runner, force=True)
-    order = []
-    monkeypatch.setattr(system, "reboot_and_wait", lambda ctx, **kw: order.append("restart"))
-    monkeypatch.setattr(system, "ensure_root_rw", lambda ctx: order.append("root"))
-    system.KeyboardStep().run(ctx)
-    assert order == ["restart", "root"]
-
-
 def test_join_timeout_never_shows_the_password(tmp_path, monkeypatch):
     import subprocess
     apk = tmp_path / "adb-join-wifi.apk"
@@ -332,3 +343,31 @@ def test_join_timeout_never_shows_the_password(tmp_path, monkeypatch):
     with pytest.raises(system.SetupFailed) as e:
         system.join_wifi(ctx, "Net", "hunter2")
     assert "hunter2" not in str(e.value) and "hunter2" not in repr(e.value.__cause__)
+
+
+# --- Issue 5: adb kept running after setup, so the lhk folder couldn't be deleted on Windows --
+
+def test_adb_is_stopped_when_setup_ends(tmp_path, monkeypatch):
+    from lhk import cli
+    adb = tmp_path / "adb"
+    adb.write_bytes(b"")
+    runner = FakeRunner()
+    ctx = Context(runner=runner, ui=FakeUI(), paths=Paths(tmp_path), state={"progress_id": "t"})
+    monkeypatch.setattr(cli, "_context", lambda args: ctx)
+    monkeypatch.setattr(cli.Tools, "locate", classmethod(lambda cls, cache: Tools(adb=adb, fastboot=adb)))
+
+    def fail(steps, ctx, **kw):
+        raise system.SetupFailed("stopped")
+    monkeypatch.setattr(cli, "run_steps", fail)
+    assert cli.main(["setup", "--workdir", str(tmp_path)]) == 1
+    assert [str(adb), "kill-server"] in runner.calls
+
+
+def test_stopping_adb_is_skipped_before_it_was_downloaded(tmp_path, monkeypatch):
+    from lhk import cli
+    runner = FakeRunner()
+    ctx = Context(runner=runner, ui=FakeUI(), paths=Paths(tmp_path), state={"progress_id": "t"})
+    monkeypatch.setattr(cli, "_context", lambda args: ctx)
+    monkeypatch.setattr(cli, "run_steps", lambda steps, ctx, **kw: None)
+    assert cli.main(["setup", "--workdir", str(tmp_path)]) == 0
+    assert not [c for c in runner.calls if "kill-server" in c]

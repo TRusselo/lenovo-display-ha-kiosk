@@ -228,14 +228,19 @@ class OpenThingsSettingsStep(Step):
         open_things_settings(ctx)
 
     def run(self, ctx) -> None:
+        # Untested models: the Wi-Fi name and password are asked here first. On an SD-X701B no
+        # on-screen keyboard showed, and Google's screen covered the settings while this tool
+        # waited at its question (GitHub issue 5).
+        if ctx.state.get("force_model") and self._join_here(ctx):
+            ctx.ui.say("Wi-Fi connected.")
+            self._ask_zone(ctx, listed=False)
+            return
         self._open(ctx)
         ctx.ui.physical("The Android Things settings are open:\n"
                         "  1. Menu (☰) > System > Date & time: pick your time zone. If yours isn't in the "
                         "list, pick any: you can type the right one here afterwards.\n"
                         "  2. Networks: pick your Wi-Fi and type its password on the on-screen keyboard.\n"
                         "Don't press Check for update or Factory data reset on that page.")
-        if ctx.state.get("force_model"):
-            self._offer_join(ctx)
         end = time.monotonic() + 15 * 60
         while not self._ip(ctx):
             if time.monotonic() > end:
@@ -248,14 +253,14 @@ class OpenThingsSettingsStep(Step):
         ctx.ui.say("Wi-Fi connected.")
         self._ask_zone(ctx)
 
-    def _offer_join(self, ctx) -> None:
-        """Untested models: on an SD-X701B no on-screen keyboard showed at this point (GitHub
-        issue 5), so the Wi-Fi name and password can be typed here instead."""
+    def _join_here(self, ctx) -> bool:
+        """Join Wi-Fi from this computer. False when the person presses Enter to use the
+        display's settings instead."""
         while not self._ip(ctx):
-            ssid = ctx.ui.ask("If no keyboard appears when you tap the password box, type your Wi-Fi name "
-                              "here to join from this computer. Otherwise press Enter: ").strip()
+            ssid = ctx.ui.ask("Type your Wi-Fi name to join it from this computer, or press Enter to "
+                              "join on the display instead: ").strip()
             if not ssid:
-                return
+                return False
             password = ctx.ui.ask("Its password (leave empty for an open network; it isn't saved or "
                                   "logged): ", secret=True)
             join_wifi(ctx, ssid, password)
@@ -265,14 +270,16 @@ class OpenThingsSettingsStep(Step):
             if not self._ip(ctx):
                 ctx.ui.say(f"The display hasn't joined {ssid} yet. Check the name and password, and that "
                            "it's a 2.4 or 5 GHz WPA network, then try again.")
+        return True
 
-    def _ask_zone(self, ctx) -> None:
+    def _ask_zone(self, ctx, listed=True) -> None:
         # The picker is a fixed list: it lacks zones such as America/Edmonton.
         from lhk.tzdata import zone_names
         names = zone_names()
         current = shell(ctx, "getprop", "persist.sys.timezone", check=False).strip()
-        ask = (f"The display's time zone is {current or 'not set'}. If your zone wasn't in the list, type its "
-               "name (for example America/Edmonton), or press Enter to keep it: ")
+        which = "If your zone wasn't in the list, type its name" if listed else "Type your time zone's name"
+        ask = (f"The display's time zone is {current or 'not set'}. {which} (for example America/Edmonton), "
+               "or press Enter to keep it: ")
         while True:
             zone = ctx.ui.ask(ask).strip()
             if not zone:
@@ -340,11 +347,6 @@ class KeyboardStep(Step):
         if not self.done(ctx):
             raise SetupFailed("Simple Keyboard installed, but Android didn't switch to it. Please report "
                               "this on GitHub, with the log.")
-        # On an SD-X701B no on-screen keyboard showed, not even the built-in one, until the
-        # display had restarted (GitHub issue 5).
-        ctx.ui.say("Restarting the display, so the keyboard shows. This takes a minute or two.")
-        reboot_and_wait(ctx, why="the display to restart with the keyboard")
-        ensure_root_rw(ctx)         # adb root doesn't survive a restart; the time zone step needs it
 
 
 class DegoogleStep(Step):

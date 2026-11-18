@@ -44,7 +44,7 @@ What has been seen working on each:
 | Speaker | ✅ | not reported | ❌ no amplifier |
 | Volume buttons | ✅ | ✅ | ❓ |
 | Light sensor (screen brightness) | ✅ | ✅ | ❓ |
-| On-screen keyboard for Wi-Fi | ✅ | ⚠️ only after a restart; 0.2.2 restarts, or joins Wi-Fi from the computer (untested) | ❓ |
+| On-screen keyboard for Wi-Fi | ✅ | ⚠️ none showed; setup joins Wi-Fi from the computer instead | ❓ |
 
 ✅ works, ⚠️ works with a caveat, ❓ not tried, ❌ doesn't work. If you've run it on another display, or
 filled in a ❓, please [open an issue](https://github.com/TRusselo/lenovo-display-ha-kiosk/issues).
@@ -55,9 +55,9 @@ models only, at your own risk. Follow the [Quick start](#quick-start) below, add
 - Windows: `lhk\lhk setup --force-model`
 - Mac and Linux: `./lhk/lhk setup --force-model`
 
-Setup warns that the model is untested and carries on. Keep the backup it makes. If no keyboard appears for
-the Wi-Fi password, setup offers to join Wi-Fi from the computer: type the network name and password in the
-terminal.
+Setup warns that the model is untested and carries on. Keep the backup it makes. For Wi-Fi, setup asks for
+the network name and password in the terminal and joins from the computer, since no on-screen keyboard
+showed on the 10". Press Enter instead to join on the display.
 
 ## What you get
 

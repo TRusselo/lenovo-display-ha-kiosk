@@ -79,7 +79,10 @@ def _lock(args) -> int:
     ctx.ui.say("This locks verified boot on a display restored to stock and left unlocked. It reads the "
                "display's boot images in EDL mode first, and locks only if they're stock. You'll type "
                "lock to confirm.")
-    return 0 if relock.lock_only(ctx, _tools_and_edl(ctx)) else 1
+    try:
+        return 0 if relock.lock_only(ctx, _tools_and_edl(ctx)) else 1
+    finally:
+        _stop_adb(ctx)
 
 
 def _restore(args) -> int:
@@ -105,6 +108,13 @@ def _restore(args) -> int:
     if problems:
         print("Can't restore this backup: " + "; ".join(problems), file=sys.stderr)
         return 2
+    try:
+        return _restore_from(ctx, folder)
+    finally:
+        _stop_adb(ctx)
+
+
+def _restore_from(ctx, folder) -> int:
     edl = _tools_and_edl(ctx)
     problems = relock.stock_problems(folder)
     if problems:
@@ -125,8 +135,22 @@ def _setup(args) -> int:
         ctx.ui.intro("Setup takes 20 to 30 minutes and needs 12 GB free: about 1 GB of downloads the first "
                      "time, the unpacked firmware, and a backup of the display (about 3.5 GB). The tool tells "
                      "you each time it needs you at the display.")
-    run_steps(plan.setup_steps(), ctx, start_from=args.start_from, restart=args.restart)
+    try:
+        run_steps(plan.setup_steps(), ctx, start_from=args.start_from, restart=args.restart)
+    finally:
+        _stop_adb(ctx)
     return 0
+
+
+def _stop_adb(ctx) -> None:
+    """adb leaves a server running, which on Windows keeps the lhk folder from being
+    deleted (GitHub issue 5)."""
+    try:
+        adb = Tools.locate(ctx.paths.cache).adb
+        if adb.is_file():
+            ctx.runner.run([adb, "kill-server"], check=False, timeout=30)
+    except Exception:
+        pass        # never hide the reason a run stopped, or fail one that worked
 
 
 def main(argv=None) -> int:
