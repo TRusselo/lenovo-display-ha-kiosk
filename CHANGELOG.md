@@ -2,7 +2,7 @@
 
 What changed for people converting a display. Newest first.
 
-## Unreleased
+## 0.2.5 (2026-11-22)
 
 - **8" displays still on Lenovo's original 2018 software should now convert.** Two displays that never got
   Lenovo's final update were converted by hand by their owners, fvsqr and harryfine (GitHub issues 6 and 7).
