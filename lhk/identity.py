@@ -8,6 +8,7 @@ A display that reports no hash is checked by its screen instead (RootStep).
 from __future__ import annotations
 
 import re
+import subprocess
 from dataclasses import dataclass
 
 SUPPORTED = {
@@ -44,9 +45,11 @@ class Identity:
 
 
 def _getvar(ctx, serial, name) -> str:
-    out = ctx.runner.run([ctx.state["tools"].fastboot, "-s", serial, "getvar", name],
-                         check=False, timeout=20).out
-    return out
+    try:
+        return ctx.runner.run([ctx.state["tools"].fastboot, "-s", serial, "getvar", name],
+                              check=False, timeout=20).out
+    except subprocess.TimeoutExpired:
+        return ""       # at-vboot-state can hang on the original 2018 bootloader (GitHub issue 7)
 
 
 def _value(out, key) -> str:
@@ -82,10 +85,11 @@ def check_fastboot_identity(ctx, serial) -> Identity:
     )
     locked = _value(vboot, "avb-locked")
     if locked == "":
-        # Lenovo's original 2018 bootloader can leave out avb-locked (GitHub issue 7); there,
-        # the plain unlocked variable turned from no to yes with its legacy unlock.
+        # Lenovo's original 2018 bootloader can leave out avb-locked (GitHub issue 7). Then
+        # "unlocked: yes" counts as unlocked; anything else stays unknown, never "locked":
+        # relock must not take it as proof it has locked.
         unlocked = _value(_getvar(ctx, serial, "unlocked"), "unlocked")
-        ident.avb_locked = None if unlocked not in ("yes", "no") else unlocked == "no"
+        ident.avb_locked = False if unlocked == "yes" else None
     else:
         ident.avb_locked = locked == "1"
     if not ident.perm_attr_hash and ident.product == SUPPORTED["amber"]["product"]:

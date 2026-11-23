@@ -383,3 +383,21 @@ def test_without_avb_lines_the_unlocked_variable_says_whether_it_is_unlocked(tmp
     responses[("-s", "S1", "getvar", "unlocked")] = Result(0, OLD_UNLOCKED)
     ctx = make_ctx(tmp_path, FakeRunner(responses))
     assert check_fastboot_identity(ctx, "S1").avb_locked is False
+
+
+def test_unlocked_no_never_counts_as_locked(tmp_path):
+    # relock checks "is True": a plain "unlocked: no" must not pass for proof of a lock.
+    from lhk.identity import check_fastboot_identity
+    responses = fb_responses("")
+    responses[("-s", "S1", "getvar", "unlocked")] = Result(0, OLD_LOCKED)
+    ctx = make_ctx(tmp_path, FakeRunner(responses))
+    assert check_fastboot_identity(ctx, "S1").avb_locked is None
+
+
+def test_a_hanging_getvar_reads_as_empty(tmp_path):
+    import subprocess
+    from lhk.identity import check_fastboot_identity
+    responses = fb_responses("")
+    responses[("-s", "S1", "getvar", "at-vboot-state")] = subprocess.TimeoutExpired("fastboot", 20)
+    ctx = make_ctx(tmp_path, FakeRunner(responses))
+    assert check_fastboot_identity(ctx, "S1").avb_locked is None
