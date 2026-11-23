@@ -82,6 +82,15 @@ FELL_BACK = ("The new system didn't start, and the display went back to its old 
              "backup.")
 
 
+MAYBE_FELL_BACK = (
+    "The new system hasn't shown up over USB. It may not have started, in which case the display went back "
+    "to its old system (GitHub issues 6 and 7). To check: unplug the display, start it in fastboot mode and "
+    "run `fastboot getvar slot-unbootable:a` with the fastboot in this tool's cache folder. If that says yes, "
+    "slot A didn't start: run setup again with --from flash, which gives slot A fresh tries, and if it "
+    "happens again, please report it on GitHub with the log. If it says no, it's more likely the USB "
+    "cable or port.")
+
+
 def _wait_usb(ctx, timeout) -> None:
     """Like adb wait-for-device, but stops when this display shows up unauthorized. The
     flashed userdebug system never asks to allow adb, so that means the bootloader gave up on
@@ -115,6 +124,8 @@ def wait_booted(ctx, timeout=300, why="the display to start", first_start=False)
             except subprocess.TimeoutExpired:
                 job.pause("Not on USB yet")
         tries += 1
+        if first_start and tries == 1:
+            ctx.ui.say(MAYBE_FELL_BACK)
         ctx.ui.physical(REPLUG if tries == 1 else REPLUG + " " + OTHER_PORT)
         if choose(ctx.ui, "Press Enter to try again, or type stop: ", "stop"):
             raise SetupFailed(NO_ADB)

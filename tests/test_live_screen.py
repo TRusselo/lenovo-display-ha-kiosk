@@ -525,3 +525,25 @@ def test_root_step_watches_for_the_old_system(tmp_path, monkeypatch):
     except Exception:
         pass
     assert seen["first"].get("first_start") is True
+
+
+def test_first_start_says_how_to_check_a_silent_fallback(tmp_path, monkeypatch):
+    # Issue 7: a display never set up has no adb on its old system, so it never shows up as
+    # unauthorized: after the wait, say it may have gone back, and how to check.
+    import subprocess as sp
+    monkeypatch.setattr(system, "_wait_usb", lambda ctx, timeout: (_ for _ in ()).throw(sp.TimeoutExpired("adb", 1)))
+    runner = FakeRunner({BOOTED: Result(1, "")})
+    ctx = sys_ctx(tmp_path, runner, ["stop"])
+    with pytest.raises(system.SetupFailed):
+        system.wait_booted(ctx, why="the new system's first start", first_start=True)
+    text = " ".join(ctx.ui.lines)
+    assert "slot-unbootable:a" in text and "--from flash" in text
+
+
+def test_later_restarts_dont_mention_a_fallback(tmp_path):
+    import subprocess as sp
+    runner = FakeRunner({BOOTED: Result(1, ""), WAIT: sp.TimeoutExpired("adb", 300)})
+    ctx = sys_ctx(tmp_path, runner, ["stop"])
+    with pytest.raises(system.SetupFailed):
+        system.wait_booted(ctx)
+    assert "slot-unbootable" not in " ".join(ctx.ui.lines)

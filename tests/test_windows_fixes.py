@@ -106,8 +106,9 @@ def _flash_ctx(tmp_path, monkeypatch, slot, differ, a_ok="yes"):
     parts = tmp_path / "backup" / "display" / "partitions"
     parts.mkdir(parents=True)
     for base in SLOT_FIRMWARE:
-        (parts / f"{base}_a.bin").write_bytes(b"same")
-        (parts / f"{base}_b.bin").write_bytes(b"other" if base in differ else b"same")
+        same = b"same avb.persistent_digest." if base == "aboot" else b"same"     # the final bootloader
+        (parts / f"{base}_a.bin").write_bytes(same)
+        (parts / f"{base}_b.bin").write_bytes(b"other" if base in differ else same)
     runner = FakeRunner({
         ("-s", "S1", "getvar", "at-vboot-state"): Result(0, UNLOCKED),
         ("-s", "S1", "getvar", "product"): Result(0, "product: msm8x53\n"),

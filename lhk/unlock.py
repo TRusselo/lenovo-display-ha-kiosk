@@ -12,7 +12,9 @@ import os
 from lhk.downloads import fetch
 from lhk.identity import check_adb_identity, check_fastboot_identity
 from lhk.modes import Mode, detect, wait_for_mode
+from lhk.runner import CommandFailed
 from lhk.steps import Step
+from lhk.ui import choose
 from lhk.uvrun import uv_path, uv_python
 
 FASTBOOT_PROMPT = ("Unplug the display's power. Hold VOLUME DOWN, plug the power back in, and let go "
@@ -22,6 +24,12 @@ FASTBOOT_PROMPT = ("Unplug the display's power. Hold VOLUME DOWN, plug the power
 
 class UnlockFailed(Exception):
     pass
+
+
+LEGACY = ("This display still has Lenovo's original 2018 bootloader: it never got Lenovo's final update, so "
+          "it doesn't know the unlock command this tool uses (GitHub issue 7). Lenovo's own unlock tool has a "
+          "\"Legacy Unlock\" option for these displays, which runs: fastboot oem at-unlock-vboot "
+          "default_credential. It unlocks verified boot and changes nothing else.")
 
 
 def converted_display(ctx) -> str | None:
@@ -63,10 +71,26 @@ class UnlockStep(Step):
         # at_auth_unlock.py calls plain `fastboot`: put the downloaded one first on PATH.
         env = dict(os.environ)
         env["PATH"] = os.pathsep.join([str(ctx.state["tools"].fastboot.parent), env.get("PATH", "")])
-        ctx.runner.run([*uv_python(uv_path(ctx), "--with", "pycryptodome"),
-                        tool / "at_auth_unlock.py", "-s", serial, tool / "creds"], timeout=300, env=env)
+        try:
+            ctx.runner.run([*uv_python(uv_path(ctx), "--with", "pycryptodome"),
+                            tool / "at_auth_unlock.py", "-s", serial, tool / "creds"], timeout=300, env=env)
+        except CommandFailed as e:
+            out = e.result.out
+            if "at-get-vboot-unlock-challenge" not in out or "unknown command" not in out:
+                raise
+            self._legacy(ctx, serial)
         if check_fastboot_identity(ctx, serial).avb_locked is not False:
             raise UnlockFailed("The unlock tool ran, but verified boot is still locked. "
                                "Nothing was changed on the display.")
         ctx.state["unlocked_now"] = True
         ctx.ui.say("Verified boot unlocked.")
+
+    def _legacy(self, ctx, serial) -> None:
+        ctx.ui.say(LEGACY)
+        if not choose(ctx.ui, "Type unlock to run it, or press Enter to stop: ", "unlock"):
+            raise UnlockFailed("Stopped before unlocking. Nothing was changed on the display.")
+        from lhk.flash import assert_safe      # flash imports this module
+        args = ["oem", "at-unlock-vboot", "default_credential"]
+        assert_safe(args)
+        ctx.runner.run([ctx.state["tools"].fastboot, "-s", serial, *args], timeout=60)
+        ctx.state["old_bootloader"] = True

@@ -27,7 +27,7 @@ are switched off.
 
 |    | Display | Model | Status |
 |----|---------|-------|--------|
-| ✅ | Lenovo Smart Display 8 | SD-8501F | **Supported**, tested on two displays. [Device notes](devices/amber/README.md) |
+| ✅ | Lenovo Smart Display 8 | SD-8501F | **Supported**, tested on two displays. Displays still on Lenovo's original 2018 software are handled since 0.2.5 ([#6](https://github.com/TRusselo/lenovo-display-ha-kiosk/issues/6), [#7](https://github.com/TRusselo/lenovo-display-ha-kiosk/issues/7)). [Device notes](devices/amber/README.md) |
 | ⚠️ | Lenovo Smart Display 10 | SD-X701B | **Works with `--force-model`**, reported by one user on two runs ([#5](https://github.com/TRusselo/lenovo-display-ha-kiosk/issues/5)). Not tested by the author. [Notes](devices/README.md) |
 | ❓ | Lenovo Smart Display M10 (Japan) | SD-X501F | **Not tried.** A 10" board with the 8" screen and no speaker amplifier ([#4](https://github.com/TRusselo/lenovo-display-ha-kiosk/issues/4)). |
 | ❌ | Lenovo Smart Display 7 | CD-17302F | **Not supported.** Different firmware: don't use `--force-model` on it. |

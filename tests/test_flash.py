@@ -92,7 +92,14 @@ def test_assert_safe_blocks_lock_and_partition_table(args):
 
 def test_assert_safe_allows_the_plan():
     for args in (["flash", "boot_a", "b.img"], ["erase", "userdata"], ["set_active", "a"], ["reboot"],
-                 ["getvar", "at-vboot-state"]):
+                 ["getvar", "at-vboot-state"], ["oem", "at-unlock-vboot", "default_credential"]):
+        assert_safe(args)
+
+
+@pytest.mark.parametrize("args", [["oem", "at-unlock-vboot"], ["oem", "at-unlock-vboot", "other"],
+                                  ["oem", "at-lock-vboot", "default_credential"]])
+def test_assert_safe_allows_only_the_exact_legacy_unlock(args):
+    with pytest.raises(ForbiddenCommand):
         assert_safe(args)
 
 
@@ -152,14 +159,16 @@ def test_flash_skipped_when_userdebug_already_booted(tmp_path, monkeypatch):
     assert FlashStep().done(ctx) is True
 
 
-def write_backup(tmp_path, differ=()):
-    """A finished backup folder where the slot-A/B firmware matches, except `differ`."""
+def write_backup(tmp_path, differ=(), old_bootloader=False):
+    """A finished backup folder where the slot-A/B firmware matches, except `differ`. Its
+    aboot is the final one (libavb 1.1), or Lenovo's original 2018 one."""
     from lhk.slots import SLOT_FIRMWARE
     parts = tmp_path / "backup" / "display" / "partitions"
     parts.mkdir(parents=True)
     for base in SLOT_FIRMWARE:
-        (parts / f"{base}_a.bin").write_bytes(b"same")
-        (parts / f"{base}_b.bin").write_bytes(b"older" if base in differ else b"same")
+        same = b"same" if base != "aboot" or old_bootloader else b"same avb.persistent_digest."
+        (parts / f"{base}_a.bin").write_bytes(same)
+        (parts / f"{base}_b.bin").write_bytes(b"older" if base in differ else same)
     return parts
 
 
@@ -251,3 +260,126 @@ def test_wipe_warning_says_what_to_do_after_lanovo():
     # Issue 5: a display that ran LANovo hit this, and its owner renamed the backup instead.
     from lhk.flash import WIPE_WARNING
     assert "LANovo" in WIPE_WARNING and "type flash" in WIPE_WARNING
+
+
+# --- Issues 6 and 7: Lenovo's original 2018 bootloader can't read the userdebug vbmeta ---------
+
+def _real_shaped_images(tmp_path):
+    from tests.test_vbmeta import _stock_like
+    imgs = fake_images(tmp_path)
+    imgs["vbmeta_a"].write_bytes(_stock_like())
+    return imgs
+
+
+@pytest.fixture
+def small_key(monkeypatch):
+    from lhk import vbmeta
+    key = vbmeta.new_key(bits=1024)
+    monkeypatch.setattr(vbmeta, "new_key", lambda bits=4096: key)
+
+
+def _flashed_vbmeta(runner):
+    return Path([c for c in runner.calls if c[3:5] == ["flash", "vbmeta_a"]][0][5])
+
+
+def test_old_bootloader_gets_a_vbmeta_it_can_read(tmp_path, monkeypatch, small_key):
+    from lhk import vbmeta
+    write_backup(tmp_path, old_bootloader=True)
+    runner = FakeRunner(fb_responses(UNLOCKED))
+    ctx = make_ctx(tmp_path, runner)
+    ctx.state["progress_id"] = "display"
+    imgs = _real_shaped_images(tmp_path)
+    monkeypatch.setattr(flash, "prepare_images", lambda ctx: imgs)
+    FlashStep().run(ctx)
+    sent = _flashed_vbmeta(runner)
+    assert sent != imgs["vbmeta_a"]
+    names = [d.name for d in vbmeta.descriptors(sent.read_bytes())]
+    assert b"factory" not in names and b"oem_bootloader" not in names
+    assert vbmeta.header(sent.read_bytes()).minor == 0
+    assert any("2018" in l for l in ctx.ui.lines)
+    # everything else is flashed as it was
+    for n in flash.FLASH_SET:
+        if n != "vbmeta_a":
+            assert ["-s", "S1", "flash", n, str(imgs[n])] in [c[1:] for c in runner.calls]
+
+
+def test_final_bootloader_gets_the_vbmeta_unchanged(tmp_path, monkeypatch):
+    write_backup(tmp_path)
+    runner = FakeRunner(fb_responses(UNLOCKED))
+    ctx = make_ctx(tmp_path, runner)
+    ctx.state["progress_id"] = "display"
+    imgs = _real_shaped_images(tmp_path)
+    monkeypatch.setattr(flash, "prepare_images", lambda ctx: imgs)
+    FlashStep().run(ctx)
+    assert _flashed_vbmeta(runner) == imgs["vbmeta_a"]
+
+
+def test_legacy_unlock_marks_the_bootloader_old_even_without_a_backup(tmp_path, monkeypatch, small_key):
+    runner = FakeRunner(fb_responses(UNLOCKED))
+    ctx = make_ctx(tmp_path, runner)
+    ctx.state["old_bootloader"] = True
+    imgs = _real_shaped_images(tmp_path)
+    monkeypatch.setattr(flash, "prepare_images", lambda ctx: imgs)
+    FlashStep().run(ctx)
+    assert _flashed_vbmeta(runner) != imgs["vbmeta_a"]
+
+
+# --- Issue 7: the original 2018 bootloader only knows the legacy unlock command ---------------
+
+OLD_LOCKED = "unlocked: no\n"
+OLD_UNLOCKED = "unlocked: yes\n"
+CHALLENGE_FAILS = CommandFailed(["uv"], Result(1, "FAILED (remote: 'unknown command')\nCommand 'fastboot -s S1 "
+                                                  "oem at-get-vboot-unlock-challenge' returned non-zero exit status 1\n"))
+
+
+def _old_unlock_ctx(tmp_path, monkeypatch, answers, unlocked_after=True):
+    responses = fb_responses("")       # no at-vboot-state lines at all
+    responses[("-s", "S1", "getvar", "unlocked")] = [Result(0, OLD_LOCKED),
+                                                     Result(0, OLD_UNLOCKED if unlocked_after else OLD_LOCKED)]
+    responses[("run",)] = CHALLENGE_FAILS
+    runner = FakeRunner(responses)
+    ctx = make_ctx(tmp_path, runner)
+    ctx.ui = FakeUI(answers)
+    tool = tmp_path / "avb"
+    (tool / "creds").mkdir(parents=True)
+    (tool / "at_auth_unlock.py").write_text("")
+    monkeypatch.setattr(unlock, "fetch", lambda id_, ctx: tool)
+    monkeypatch.setattr(unlock, "uv_python", lambda uv, *a: ["uvbin", "run", *a])
+    return ctx, runner
+
+
+def test_old_bootloader_is_offered_the_legacy_unlock(tmp_path, monkeypatch):
+    ctx, runner = _old_unlock_ctx(tmp_path, monkeypatch, ["unlock"])
+    UnlockStep().run(ctx)
+    assert ["fastboot", "-s", "S1", "oem", "at-unlock-vboot", "default_credential"] in runner.calls
+    assert ctx.state["old_bootloader"] and ctx.state["unlocked_now"]
+    assert any("2018" in l for l in ctx.ui.lines)
+
+
+def test_legacy_unlock_is_only_run_when_typed(tmp_path, monkeypatch):
+    ctx, runner = _old_unlock_ctx(tmp_path, monkeypatch, [""])
+    with pytest.raises(unlock.UnlockFailed):
+        UnlockStep().run(ctx)
+    assert not [c for c in runner.calls if "at-unlock-vboot" in c]
+
+
+def test_legacy_unlock_is_checked(tmp_path, monkeypatch):
+    ctx, runner = _old_unlock_ctx(tmp_path, monkeypatch, ["unlock"], unlocked_after=False)
+    with pytest.raises(unlock.UnlockFailed):
+        UnlockStep().run(ctx)
+
+
+def test_other_unlock_failures_are_not_taken_for_an_old_bootloader(tmp_path, monkeypatch):
+    ctx, runner = _old_unlock_ctx(tmp_path, monkeypatch, ["unlock"])
+    runner.responses[("run",)] = CommandFailed(["uv"], Result(1, "FAILED (remote: 'Invalid credential')\n"))
+    with pytest.raises(CommandFailed):
+        UnlockStep().run(ctx)
+    assert not [c for c in runner.calls if "at-unlock-vboot" in c]
+
+
+def test_without_avb_lines_the_unlocked_variable_says_whether_it_is_unlocked(tmp_path):
+    from lhk.identity import check_fastboot_identity
+    responses = fb_responses("")
+    responses[("-s", "S1", "getvar", "unlocked")] = Result(0, OLD_UNLOCKED)
+    ctx = make_ctx(tmp_path, FakeRunner(responses))
+    assert check_fastboot_identity(ctx, "S1").avb_locked is False

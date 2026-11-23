@@ -2,6 +2,21 @@
 
 What changed for people converting a display. Newest first.
 
+## Unreleased
+
+- **8" displays still on Lenovo's original 2018 software now convert.** Two displays that never got
+  Lenovo's final update were converted by hand by their owners, fvsqr and harryfine (GitHub issues 6 and 7);
+  setup now does what worked:
+  - **Unlock:** their bootloader doesn't know the unlock command setup uses. Setup now offers Lenovo's
+    own legacy unlock, `fastboot oem at-unlock-vboot default_credential`, and runs it only when you type
+    `unlock`.
+  - **Flash:** their bootloader can't read the new system's `vbmeta_a`, so slot A never started and the
+    display went back to its old system. Setup tells these bootloaders apart by slot A's `aboot` in the
+    backup, and flashes a copy of `vbmeta_a` without the two entries they can't read. Displays with the
+    final bootloader get exactly the same flash as before.
+- **When the new system doesn't show up over USB,** setup now also says the display may have gone back to
+  its old system, and how to check (`fastboot getvar slot-unbootable:a`).
+
 ## 0.2.4 (2026-11-18)
 
 - **Untested models (`--force-model`): Wi-Fi is asked in the terminal first.** On an SD-X701B the

@@ -81,7 +81,13 @@ def check_fastboot_identity(ctx, serial) -> Identity:
         perm_attr_hash=_value(vboot, "at-perm-attr-hash"),
     )
     locked = _value(vboot, "avb-locked")
-    ident.avb_locked = None if locked == "" else locked == "1"
+    if locked == "":
+        # Lenovo's original 2018 bootloader can leave out avb-locked (GitHub issue 7); there,
+        # the plain unlocked variable turned from no to yes with its legacy unlock.
+        unlocked = _value(_getvar(ctx, serial, "unlocked"), "unlocked")
+        ident.avb_locked = None if unlocked not in ("yes", "no") else unlocked == "no"
+    else:
+        ident.avb_locked = locked == "1"
     if not ident.perm_attr_hash and ident.product == SUPPORTED["amber"]["product"]:
         # Some SD-8501Fs report no hardware ID at all (GitHub issue 6). The
         # flash is the same for either size, so let the screen size decide

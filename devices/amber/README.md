@@ -76,6 +76,17 @@ its firmware elsewhere.**
 
 **Check:** `fastboot getvar at-vboot-state` shows `avb-locked=0`. `bootloader-locked` stays `1`, which is fine.
 
+**Original 2018 bootloader** (a display that never got Lenovo's final update, for example one never set up):
+step 3 fails with `FAILED (remote: 'unknown command')` on `oem at-get-vboot-unlock-challenge`, and
+`fastboot getvar version-bootloader` is empty. Use the legacy unlock instead, option 2 of Lenovo's own
+`AVB_unlock.bat` ([#7](https://github.com/TRusselo/lenovo-display-ha-kiosk/issues/7)); `lhk` offers it:
+
+```bash
+fastboot oem at-unlock-vboot default_credential
+```
+
+**Check:** `fastboot getvar unlocked` shows `yes` (this bootloader may not show `avb-locked`).
+
 **Never run `fastboot oem at-lock-vboot`** after flashing the userdebug build. It can hard-brick the display.
 
 ## 5. `flash`: flash the userdebug build to slot A
@@ -93,6 +104,15 @@ its firmware elsewhere.**
      - **Any bootloader part differs: stop.** Slot A may be too old to start the new system. Please report it.
    - Without a backup, this can't be checked. Don't move the backup away to get past the check: `lhk restore`
      needs it.
+0. **Check the bootloader.** Lenovo's original 2018 bootloader (libavb 1.0) can't read the userdebug
+   `vbmeta_a`: two of its entries, `factory` and `oem_bootloader`, need libavb 1.1. It rejects the whole file
+   even with verified boot unlocked, so slot A never starts and the display goes back to slot B
+   ([#6](https://github.com/TRusselo/lenovo-display-ha-kiosk/issues/6)). The final bootloader has the text
+   `avb.persistent_digest.` in it; the original doesn't: `grep -c avb.persistent_digest aboot_a.bin` in your
+   backup's `partitions` folder prints `0` for the original. On those, `lhk` flashes a copy of `vbmeta_a`
+   without those two entries, with verity off, signed with a throwaway key (any key is accepted while verified
+   boot is unlocked). Everything else is flashed as usual. Don't copy a bootloader from another display
+   instead: a bad write there can leave a display unable to start at all.
 1. Extract `FRW.bin` from the `.7z`. It's a whole-disk image laid out like the **10"**.
 2. Read **its own** partition table, and copy out `boot_a`, `system_a`, `vendor_a`, `oem_a` and `vbmeta_a`.
    `lhk` does this; by hand, use the GPT's first LBA and sector count with `dd`, at 512-byte sectors.
@@ -112,6 +132,10 @@ its firmware elsewhere.**
 **Never** flash the partition table, the bootloader chain (`sbl1`, `aboot`, `tz`, `rpm`), `devinfo`, `persist`,
 `dsp`, `modem`, `drm` or `bluetooth`, and never `format userdata`. The display's own stock `dsp`, `modem`,
 `drm` and `bluetooth` are the right ones for the 8". Slot B stays stock.
+
+**If it never shows up over USB:** the display may have gone back to slot B. In fastboot mode,
+`fastboot getvar slot-unbootable:a` says `yes` when slot A didn't start. `fastboot set_active a` (part of
+every flash) gives slot A fresh tries.
 
 **Check:** after the first boot (a few minutes), `adb shell getprop ro.build.fingerprint` ends with
 `OIMK.211005.001/7795499:userdebug/dev-keys`, and `adb shell wm size` shows `800x1280`.
