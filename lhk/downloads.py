@@ -24,6 +24,10 @@ class HashMismatch(Exception):
     pass
 
 
+class DownloadFailed(Exception):
+    pass
+
+
 class DiskTooFull(Exception):
     pass
 
@@ -91,6 +95,23 @@ def _download(url: str, part: Path, ui=None, progress=None) -> None:
                     progress(got)
 
 
+def _download_any(urls, part: Path, ui=None, progress=None) -> None:
+    """Try each host in turn (from the clock tool). The pinned SHA-256 is what proves the file, so any
+    mirror will do; a partial file from one host resumes on the next."""
+    errors = []
+    for url in urls:
+        try:
+            _download(url, part, ui, progress)
+            return
+        except requests.RequestException as err:
+            host = url.split("/")[2]
+            errors.append(f"{host}: {type(err).__name__}")
+            if ui is not None and url is not urls[-1]:
+                ui.say(f"Couldn't reach {host}; trying another mirror.")
+    raise DownloadFailed("Couldn't download it from any source (" + "; ".join(errors) + "). "
+                         "Check the internet connection and run again.")
+
+
 def _unpack(kind: str, archive: Path, out: Path) -> None:
     tmp = out.with_name(out.name + ".unpacking")
     shutil.rmtree(tmp, ignore_errors=True)
@@ -147,7 +168,7 @@ def fetch(entry_id: str, ctx) -> Path:
                 if job is not None and total >= 1024 ** 2:
                     job.note(f"{round(got / 1024 ** 2)} of {round(total / 1024 ** 2)} MB, "
                              f"{min(100, got * 100 // total)}%", got, total)
-            _download(e["url"], part, ctx.ui, progress)
+            _download_any([e["url"], *e.get("mirrors", [])], part, ctx.ui, progress)
             got = _sha256(part)
         if got != e["sha256"]:
             part.unlink(missing_ok=True)

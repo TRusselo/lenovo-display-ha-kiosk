@@ -209,7 +209,27 @@ adb shell "am start -n com.steinwurf.adbjoinwifi/.MainActivity -e ssid 'Your Wi-
 
 **Check:** `adb shell ip -4 addr show wlan0` shows an `inet` address.
 
-## 10. `degoogle`: turn off Assistant, Cast and check-ins
+## 10. `fixed-address`: a fixed address (optional)
+
+Setup asks for a fixed address for the display's Wi-Fi. Press Enter to keep it automatic; `lhk wifi` can set
+or undo it later. A fixed address must be free on your network, outside the range your router hands out.
+The mask, gateway and DNS each offer a default (the gateway is this computer's own when it's on the same
+network).
+
+What the tool does, with root:
+1. Switches Wi-Fi off (`adb shell svc wifi disable`) and waits a few seconds, so Android has saved its own
+   changes.
+2. Copies `/data/misc/wifi/WifiConfigStore.xml` to the computer and changes only the `<IpConfiguration>`
+   block of the network the display is on: `IpAssignment` `STATIC`, `LinkAddress`, `LinkPrefixLength`,
+   `GatewayAddress` and `DNSServers`, as Android 8.1 writes them. Every other byte stays.
+3. Writes it back as Android keeps it (owner 1000:1000, mode 600, `restorecon`), restarts the display, and
+   switches Wi-Fi on again.
+
+The file holds every saved Wi-Fi password: the tool never logs it, and deletes its copies on both sides.
+
+**Check:** `adb shell ip -4 addr show wlan0` shows the fixed address.
+
+## 11. `degoogle`: turn off Assistant, Cast and check-ins
 
 ```bash
 adb shell pm disable com.google.assistant.gallium.dragonglass.platform.androidthings.system
@@ -224,7 +244,7 @@ package: they're part of Android Things itself.
 
 **Check:** `adb shell pm list packages -d` lists those four.
 
-## 11. `mixer`: microphone gain
+## 12. `mixer`: microphone gain
 
 In `/system/etc/mixer_paths_openq624_fep.xml`, change exactly six lines:
 - the **top-level** `DEC1 Volume` and `DEC2 Volume`, from `84` to `96`
@@ -236,7 +256,7 @@ back, and `adb shell chmod 644` it.
 **Check:** `adb shell grep -c 'value="12"' /system/etc/mixer_paths_openq624_fep.xml` prints `4` or more, and the
 two DEC lines show `96`.
 
-## 12. `kiosk-install`: install Kiosk Satellite
+## 13. `kiosk-install`: install Kiosk Satellite
 
 Download the newest `*armeabi-v7a.apk` from [Kiosk Satellite's releases](https://github.com/jxlarrea/kiosk-satellite/releases).
 Check its SHA-256 against the release page, and its signing certificate:
@@ -248,7 +268,7 @@ adb install -r -g kiosk-satellite-VERSION.armeabi-v7a.apk
 
 **Check:** `adb shell pm path me.jxl.kiosk_satellite` prints a `package:` line.
 
-## 13. `kiosk-grants`: permissions and device owner
+## 14. `kiosk-grants`: permissions and device owner
 
 ```bash
 adb shell appops set me.jxl.kiosk_satellite REQUEST_INSTALL_PACKAGES allow
@@ -266,7 +286,7 @@ removes it.
 
 **Check:** `adb shell dumpsys device_policy` shows Kiosk Satellite under `Device Owner`.
 
-## 14. `kiosk-settings`: connect to Home Assistant, then apply the settings
+## 15. `kiosk-settings`: connect to Home Assistant, then apply the settings
 
 1. On the display, go through all five pages of Kiosk Satellite's setup wizard and press **Finish**: a name and
    admin password, your Home Assistant address and sign-in, the dashboard, voice and ESPHome options, then
@@ -287,7 +307,20 @@ to the setup wizard.
 
 **Check:** with the app open, `adb shell dumpsys input | grep -c nav_input_consumer` prints `0`.
 
-## 15. `bootfix`: light sensor and volume buttons
+## 16. `casting-helper`: Casting Helper (optional)
+
+Casting Helper is a Kiosk Satellite plugin: cast video and music to the
+display from phones and computers. Setup downloads the newest release with the other tools, from
+`https://gitlab.tiered.top/api/v4/projects/3/packages/generic/casting-helper/latest/casting-helper.zip`.
+Unlike the other downloads it isn't pinned to a checksum, because that address always serves the newest
+release; Kiosk Satellite checks the package itself. If the download fails, the step is skipped without a
+word, and setup goes on.
+
+It's installed through Kiosk Satellite's remote admin, signed in as for the settings: `listPlugins`, then
+`setPluginsEnabled`, `installPlugin` (trusted) and `enablePlugin`. By hand: in Kiosk Satellite, Plugin
+Manager, Install from ZIP.
+
+## 17. `bootfix`: light sensor and volume buttons
 
 - **Volume buttons:** these are GPIOs that only a Google component used to read. The fix is a small helper that
   turns presses into volume keys.
@@ -315,7 +348,7 @@ adb reboot
 - `adb shell dumpsys sensorservice | grep kiosk_satellite.LightSensor` finds a line
 - pressing volume up changes the volume
 
-## 16. `verify`: final check
+## 18. `verify`: final check
 
 - Everything from steps 5 and 14 still holds.
 - Kiosk Satellite shows your dashboard.

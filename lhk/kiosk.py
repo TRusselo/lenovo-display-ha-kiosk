@@ -216,6 +216,18 @@ def _current(xml: str) -> dict:
     return out
 
 
+def remote_admin(ctx) -> tuple:
+    """Signed in to Kiosk Satellite's remote admin over the adb tunnel: (http, base URL, token).
+    The password goes only to the app, never on a command line or in the log."""
+    adb(ctx, "forward", f"tcp:{LOCAL_PORT}", "tcp:2324")
+    base = f"http://127.0.0.1:{LOCAL_PORT}"
+    http = _http(ctx)
+    login = http.post(f"{base}/api/login", json={"password": _password(_prefs(ctx))}, timeout=30)
+    if login.status_code != 200:
+        raise KioskError("Couldn't sign in to Kiosk Satellite's remote admin.")
+    return http, base, login.json().get("token") or login.json().get("access_token")
+
+
 class SettingsStep(Step):
     name = "kiosk-settings"
     title = "Apply the recommended Kiosk Satellite settings"
@@ -252,13 +264,7 @@ class SettingsStep(Step):
                 break
             ctx.ui.say("Kiosk Satellite isn't signed in to Home Assistant yet. Finish its setup on the "
                        "display first.")
-        adb(ctx, "forward", f"tcp:{LOCAL_PORT}", "tcp:2324")
-        base = f"http://127.0.0.1:{LOCAL_PORT}"
-        http = _http(ctx)
-        login = http.post(f"{base}/api/login", json={"password": _password(_prefs(ctx))}, timeout=30)
-        if login.status_code != 200:
-            raise KioskError("Couldn't sign in to Kiosk Satellite's remote admin.")
-        token = login.json().get("token") or login.json().get("access_token")
+        http, base, token = remote_admin(ctx)
         r = http.patch(f"{base}/api/settings", json=dict(SETTINGS),
                        headers={"Authorization": f"Bearer {token}"}, timeout=30)
         r.raise_for_status()

@@ -220,3 +220,42 @@ def test_tar_paths_outside_the_folder_are_refused_without_extract_filters(tmp_pa
     with pytest.raises(ValueError, match="outside"):
         downloads._unpack("tar.gz", archive, tmp_path / "out")
     assert not (tmp_path / "outside").exists()
+
+
+# --- mirrors (from the clock tool) -------------------------------------------------
+
+def _dead_url():
+    import socket
+    s = socket.socket()
+    s.bind(("127.0.0.1", 0))
+    port = s.getsockname()[1]
+    s.close()                  # nothing listens there now
+    return f"http://127.0.0.1:{port}"
+
+
+def test_falls_back_to_a_mirror_when_the_main_host_is_down(tmp_path, server):
+    srv, url = server
+    sha, size = make_zip(srv / "m.zip", {"f": "data"})
+    manifest = {"x": {"id": "x", "url": f"{_dead_url()}/m.zip", "mirrors": [f"{url}/m.zip"],
+                      "sha256": sha, "size": size, "unpack": None, "platform": None}}
+    c = ctx_for(tmp_path / "work", manifest)
+    out = fetch("x", c)
+    assert out.name == "m.zip" and out.read_bytes() == (srv / "m.zip").read_bytes()
+
+
+def test_all_hosts_down_raises_naming_them(tmp_path):
+    from lhk import downloads
+    dead = _dead_url()
+    manifest = {"x": {"id": "x", "url": f"{dead}/m.zip", "mirrors": [f"{dead}/m2.zip"],
+                      "sha256": "0" * 64, "size": 10, "unpack": None, "platform": None}}
+    c = ctx_for(tmp_path / "work", manifest)
+    with pytest.raises(downloads.DownloadFailed) as e:
+        fetch("x", c)
+    assert "127.0.0.1" in str(e.value)
+
+
+def test_mirrors_in_the_manifest_serve_the_same_file():
+    for e in load_manifest().values():
+        for u in e.get("mirrors", []):
+            assert u.startswith("https://") and u != e["url"], e["id"]
+            assert u.rsplit("/", 1)[-1] == e["url"].rsplit("/", 1)[-1], e["id"]

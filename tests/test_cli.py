@@ -10,8 +10,8 @@ from tests.fakes import FakeRunner, FakeUI
 def test_step_order_matches_design():
     assert [s.name for s in plan.setup_steps()] == [
         "prerequisites", "downloads", "backup", "unlock", "flash", "root", "tzdata", "keyboard",
-        "things-settings", "degoogle", "mixer", "kiosk-install", "kiosk-grants",
-        "kiosk-settings", "bootfix", "verify",
+        "things-settings", "fixed-address", "degoogle", "mixer", "kiosk-install", "kiosk-grants",
+        "kiosk-settings", "casting-helper", "bootfix", "verify",
     ]
 
 

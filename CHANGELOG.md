@@ -2,6 +2,24 @@
 
 What changed for people converting a display. Newest first.
 
+## Unreleased
+
+From the clock tool ([lenovo-clock-ha-kiosk](https://github.com/TRusselo/lenovo-clock-ha-kiosk)):
+
+- **`lhk wifi`: change a converted display's Wi-Fi** (a new network or password) without setting up again,
+  over USB. A network the display can't join doesn't cut it off: USB keeps working, and it says so.
+  [Guide](docs/GUIDE.md).
+- **A fixed address, if you want one.** Setup asks right after Wi-Fi (press Enter to keep it automatic), and
+  `lhk wifi` sets or undoes it later. Only the address part of that saved network changes, with root, and
+  the display restarts on it; the tool says it's set only once the display is back at that address.
+  Untested on a display so far.
+- **Casting Helper**, a Kiosk Satellite plugin: cast video and music to the display from phones and
+  computers. Setup downloads the newest release and adds it after Kiosk Satellite's setup pages. If the
+  download fails, it's skipped without a word; if the install fails, setup says so in a line and goes on.
+  Tried on a clock; untested on a display so far.
+- **Downloads can fall back to mirrors** when a host can't be reached; the pinned checksum still proves the
+  file. No mirrors are listed yet.
+
 ## 0.2.5 (2026-11-22)
 
 - **8" displays still on Lenovo's original 2018 software should now convert.** Two displays that never got

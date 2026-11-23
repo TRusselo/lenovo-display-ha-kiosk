@@ -97,7 +97,7 @@ def check_buttons(ctx, wait: float = 60) -> None:
             ctx.ui.redraw()
             ctx.ui.say(f"Still waiting for {name}. If the button doesn't change the volume, press Ctrl-C "
                        "and run the same command again: setup goes on without this check, and "
-                       + doc("devices/amber/README.md", "step 15") + " says what to look at.")
+                       + doc("devices/amber/README.md", "step 17") + " says what to look at.")
     ctx.ui.say("Volume buttons work.")
 
 

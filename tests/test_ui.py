@@ -78,7 +78,8 @@ def test_every_yes_no_prompt_goes_through_choose():
             continue
         for m in re.finditer(r"ui\.ask\(", f.read_text()):
             line = f.read_text()[:m.start()].count("\n") + 1
-            assert f.name == "system.py", f"{f.name}:{line} asks without choose()"
+            # Free-text questions only (Wi-Fi names, addresses): yes/no ones go through choose().
+            assert f.name in ("system.py", "wifi.py", "staticip.py"), f"{f.name}:{line} asks without choose()"
 
 
 # Setup output polish (2026-11-12): step header, spinner, result marks, boxes.

@@ -67,6 +67,9 @@ the photo, or stand the display on its end.
 - [Time zones](TIMEZONES.md), and why a dashboard can show a time an hour off.
 - Kiosk Satellite's settings: on the display, or in a browser at `http://<the display's address>:2324`. The
   tool shows the address at the end.
+- A new Wi-Fi network or password, or a fixed address: `lhk wifi`, with the display on USB. It asks for the
+  network (Enter keeps the one it's on), then a fixed address (Enter for automatic, which also undoes a fixed
+  one). A network the display can't join doesn't cut it off: USB keeps working.
 - To go back to Google's software: `lhk restore`, explained under "How it works" in the [README](../README.md#how-it-works).
 
 ## If the display doesn't show up on USB

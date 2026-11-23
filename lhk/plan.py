@@ -1,7 +1,7 @@
 """The setup, in order. Each step skips itself when its work is already done."""
 from __future__ import annotations
 
-from lhk import backup, bootfix, doc, kiosk, system, tzdata
+from lhk import backup, bootfix, doc, kiosk, plugin, system, tzdata, wifi
 from lhk.downloads import fetch, load_manifest, platform_entry, require_free_space
 from lhk.edl import Edl
 from lhk.flash import FlashStep
@@ -44,6 +44,7 @@ class DownloadsStep(Step):
             Edl(ctx).prepare()
         with ctx.ui.busy("Downloading Kiosk Satellite"):
             kiosk.fetch_apk(ctx)
+        plugin.fetch(ctx)          # Casting Helper: a failed download is silent, and skips its step
 
 
 class BackupStep(Step):
@@ -115,7 +116,7 @@ def setup_steps() -> list[Step]:
     return [
         PrerequisitesStep(), DownloadsStep(), BackupStep(), UnlockStep(), FlashStep(),
         system.RootStep(), tzdata.TzdataStep(), system.KeyboardStep(),
-        system.OpenThingsSettingsStep(),
+        system.OpenThingsSettingsStep(), wifi.FixedAddressStep(),
         system.DegoogleStep(), system.MixerStep(), kiosk.InstallStep(), kiosk.GrantsStep(),
-        kiosk.SettingsStep(), bootfix.BootFixStep(), VerifyStep(),
+        kiosk.SettingsStep(), plugin.PluginStep(), bootfix.BootFixStep(), VerifyStep(),
     ]

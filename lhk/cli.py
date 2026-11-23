@@ -40,6 +40,10 @@ def _parser() -> argparse.ArgumentParser:
     lk = sub.add_parser("lock", help="lock verified boot on a restored stock display left unlocked")
     common(lk)
 
+    w = sub.add_parser("wifi", help="change a converted display's Wi-Fi, or give it a fixed address")
+    common(w)
+    w.add_argument("--force-model", action="store_true", help="allow an untested model (dangerous)")
+
     st = sub.add_parser("status", help="show which setup steps are done")
     common(st)
     return p
@@ -142,6 +146,19 @@ def _setup(args) -> int:
     return 0
 
 
+def _wifi(args) -> int:
+    from lhk import wifi
+    ctx = _context(args)
+    ctx.state["force_model"] = getattr(args, "force_model", False)
+    ctx.ui.title("Change the display's Wi-Fi")
+    ctx.ui.say("This changes the Wi-Fi of a display lhk setup converted, over USB: a new network, a fixed "
+               "address, or both. A network it can't join doesn't cut it off: USB keeps working.")
+    try:
+        return 0 if wifi.change(ctx) else 1
+    finally:
+        _stop_adb(ctx)
+
+
 def _stop_adb(ctx) -> None:
     """adb leaves a server running, which on Windows keeps the lhk folder from being
     deleted (GitHub issue 5)."""
@@ -156,7 +173,8 @@ def _stop_adb(ctx) -> None:
 def main(argv=None) -> int:
     args = _parser().parse_args(argv)
     try:
-        return {"setup": _setup, "restore": _restore, "lock": _lock, "status": _status}[args.command](args)
+        return {"setup": _setup, "restore": _restore, "lock": _lock, "wifi": _wifi,
+                "status": _status}[args.command](args)
     except KeyboardInterrupt:
         print("\nStopped. Run the same command again to continue where you left off.", file=sys.stderr)
         return 130
