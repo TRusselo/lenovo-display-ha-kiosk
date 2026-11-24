@@ -20,10 +20,12 @@ MANIFEST = {"id": "casting-helper", "name": "Casting Helper", "version": "0.3.1"
 
 def _zip(manifest=MANIFEST, jar=True) -> bytes:
     buf = io.BytesIO()
+    # A fixed date: a zip stores when each file was written, so two builds a second apart differ
+    # (flaky on Windows CI, 2026-11-23).
     with zipfile.ZipFile(buf, "w") as z:
-        z.writestr("kiosk-satellite-plugin.json", json.dumps(manifest))
+        z.writestr(zipfile.ZipInfo("kiosk-satellite-plugin.json", (2026, 1, 1, 0, 0, 0)), json.dumps(manifest))
         if jar:
-            z.writestr("plugin.jar", b"PK-jar")
+            z.writestr(zipfile.ZipInfo("plugin.jar", (2026, 1, 1, 0, 0, 0)), b"PK-jar")
     return buf.getvalue()
 
 
