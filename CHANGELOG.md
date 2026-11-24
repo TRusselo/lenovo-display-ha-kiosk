@@ -2,6 +2,13 @@
 
 What changed for people converting a display. Newest first.
 
+## 0.2.10 (2026-11-23)
+
+- **Lenovo's speaker sound is back.** 0.2.9's lower bass and flat compressor made the assistant's voice
+  sound bad, so the boot fixes no longer change the speaker. The microphone gain from 0.2.8 stays.
+- **Set up with 0.2.9?** Run `lhk setup` again: the boot-fix step removes the speaker tool and restarts the
+  display.
+
 ## 0.2.9 (2026-11-23)
 
 - **Better speaker sound.** Lenovo's app tunes the speaker amp at every boot with +9 dB of bass and a
