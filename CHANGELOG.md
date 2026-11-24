@@ -2,7 +2,7 @@
 
 What changed for people converting a display. Newest first.
 
-## Unreleased
+## 0.2.8 (2026-11-23)
 
 - **The microphone gain now works.** The `mixer` step changed a file the display never reads, so the mics
   stayed at 0 dB and Kiosk Satellite had to make up +24 dB on its own. The display listens through two

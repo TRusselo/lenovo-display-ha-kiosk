@@ -1,6 +1,6 @@
 [project]
 name = "lhk"
-version = "0.2.7"
+version = "0.2.8"
 description = "Degoogled Lenovo Smart Display 8 → Home Assistant kiosk: Kiosk Satellite dashboard + local voice satellite. Guided unlock, backup and flash for Windows, macOS and Linux."
 readme = "README.md"
 license = { text = "MIT" }
