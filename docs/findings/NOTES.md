@@ -80,15 +80,16 @@ debug build.**
 
 ## Mic gain, sensors, and volume (2026-11-05)
 
-- **Mic was ~20–30 dB too quiet** at the raw analog stage. The Kiosk Satellite
-  digital `audio.mic_gain_db` alone (even +24 dB) wasn't enough. **Fix:** raise the
-  analog/codec gain in `/system/etc/mixer_paths_openq624_fep.xml` — `ADC1/2/3 Volume`
-  6→12 and `DEC1/2 Volume` 84→96 — then `adb remount` + push + reboot. Combined with
-  `audio.mic_gain_db=24` and `audio.mic_capture_mode=voice_communication` (the call
-  path carries the multi-mic array + noise cancellation), wake-word detection went
-  from ~12 inches to **10+ feet**. Note the stock and userdebug `mixer_paths` are
-  byte-identical (ADC was always 6) — the stock only sounded right because Google
-  Assistant did its own AGC/beamforming on top.
+- **Mic was ~20–30 dB too quiet.** *Corrected 2026-11-23:* the change first noted here (`ADC1/2/3
+  Volume` 6→12, `DEC1/2 Volume` 84→96 in `mixer_paths_openq624_fep.xml`) did nothing: the audio system
+  loads `/system/etc/mixer_paths.xml`, and nothing reads the `openq624_fep` file. The wake-word gain that
+  day came from Kiosk Satellite's `audio.mic_gain_db=24` and sensitivity. The display listens through two
+  **digital** mics (DMIC1, DMIC2: path `speaker-stereo-dmic-ef-TERT_MI2S_TX`, 2 channels, 24-bit, 48 kHz),
+  and stock gives them 0 dB. **Fix:** `DEC1/2 Volume` 108 (+24 dB) inside
+  `speaker-dmic-endfire-TERT_MI2S_TX` in `mixer_paths.xml`, with Kiosk Satellite's mic gain at 0. A fixed
+  tone on the 8" went from −64 to −41 dB. Stock's mixer and audio policy match the debug build: Google's
+  app recorded the raw mics plus a speaker loopback and did its own processing, so there's no missing
+  calibration to restore.
 - **Volume buttons**: Android routes the hardware volume keys to Kiosk Satellite's
   Music Assistant media session (always "connected"), not the device's STREAM_MUSIC.
   **Fix:** set `sendspin.master_volume = True` ("Control the device volume") — then
@@ -398,8 +399,8 @@ path mirodawa used to get a dashboard on the 8". Risks to respect:
   `Things/iot_msm8x53_som/msm8x53_som:8.1.0/OIM6.190107.017/5307861:userdebug/dev-keys`.
   `adb root` works. `ro.product.cpu.abi=armeabi-v7a`.
 - **Audio HW present:** ALSA card `msm8953-openq624-snd-card`; speaker amp is WSA881x
-  (`wsa881x-i2c-codec`), mic is PMIC analog codec (uses analog mics — DMIC1/2 pins
-  absent, expected). Output device `AUDIO_DEVICE_OUT_SPEAKER` live. End-to-end
+  (`wsa881x-i2c-codec`), the mics are two digital mics on the codec's DMIC1/DMIC2 inputs
+  (corrected 2026-11-23; the PMIC analog inputs aren't used). Output device `AUDIO_DEVICE_OUT_SPEAKER` live. End-to-end
   mic/speaker test still pending (no tinycap/tinyplay on the build).
 - **Screen:** after AVB unlock + debug flash the Google Assistant launcher
   (`com.google.assistant.core/.launcher.SystemLauncherShim`) shows the Google 4-dots

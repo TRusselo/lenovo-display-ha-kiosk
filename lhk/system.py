@@ -12,12 +12,12 @@ from pathlib import Path
 
 from lhk.downloads import _repo_file, fetch
 from lhk.identity import check_adb_identity
-from lhk.mixer import patch_mixer
+from lhk.mixer import is_patched, patch_mixer
 from lhk.modes import Mode, MultipleDevices, _list, detect
 from lhk.steps import Step
 from lhk.ui import choose
 
-MIXER_PATH = "/system/etc/mixer_paths_openq624_fep.xml"
+MIXER_PATH = "/system/etc/mixer_paths.xml"
 CAST = "com.google.android.apps.mediashell"
 # Run 7 (2026-11-15) and a Mac tester: after the flash the display can stay off USB
 # for 9 minutes or more, until its USB cable is unplugged and plugged back in.
@@ -428,10 +428,7 @@ class MixerStep(Step):
 
     def done(self, ctx) -> bool:
         current = shell(ctx, "cat", MIXER_PATH, check=False)
-        try:
-            return patch_mixer(current) == current and 'value="12"' in current
-        except Exception:
-            return False
+        return is_patched(current)
 
     def run(self, ctx) -> None:
         ensure_root_rw(ctx)

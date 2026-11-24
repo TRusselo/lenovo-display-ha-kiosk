@@ -246,15 +246,22 @@ package: they're part of Android Things itself.
 
 ## 12. `mixer`: microphone gain
 
-In `/system/etc/mixer_paths_openq624_fep.xml`, change exactly six lines:
-- the **top-level** `DEC1 Volume` and `DEC2 Volume`, from `84` to `96`
-- every `ADC1/2/3 Volume` **inside `<path>` blocks**, from `6` to `12` (four lines)
+The display listens through two digital mics, and stock records them at 0 dB. In
+`/system/etc/mixer_paths.xml` (the file the audio system loads), add two lines inside
+`<path name="speaker-dmic-endfire-TERT_MI2S_TX">`, right after `<ctl name="DEC2 MUX" value="DMIC2" />`:
 
-Leave the top-level `ADC… value="4"` lines as they are. Pull the file with `adb pull`, edit it, `adb push` it
-back, and `adb shell chmod 644` it.
+```xml
+        <ctl name="DEC1 Volume" value="108" />
+        <ctl name="DEC2 Volume" value="108" />
+```
 
-**Check:** `adb shell grep -c 'value="12"' /system/etc/mixer_paths_openq624_fep.xml` prints `4` or more, and the
-two DEC lines show `96`.
+That's +24 dB (`84` is 0 dB). Change nothing else. Pull the file with `adb pull`, edit it, `adb push` it back,
+`adb shell chmod 644` it, and restart the display.
+
+**Check:** `adb shell grep -c 'DEC[12] Volume" value="108"' /system/etc/mixer_paths.xml` prints `2`.
+
+Before 0.2.8 this step changed `mixer_paths_openq624_fep.xml`, which nothing on the display reads. That old
+change does no harm and can stay.
 
 ## 13. `kiosk-install`: install Kiosk Satellite
 
@@ -298,8 +305,8 @@ removes it.
 | Setting | Value | Why |
 |---|---|---|
 | `screen.hide_navigation_bar` | `false` | The display has no navigation bar. Up to 2026.11.13, hiding it on Android 8 made taps get lost ([kiosk-satellite#1358](https://github.com/jxlarrea/kiosk-satellite/issues/1358), fixed in the next release) |
-| `audio.mic_gain_db` | `24` | Wake word from across the room |
-| `audio.mic_capture_mode` | `voice_communication` | Uses the multi-mic noise path |
+| `audio.mic_gain_db` | `0` | The display's own mic gain (step 12) is +24 dB already; more clips loud speech |
+| `audio.mic_capture_mode` | `voice_communication` | The setting proven on these displays |
 | `home.enabled` | `true` | "Act as the home screen". Off by default, and the wizard doesn't set it. Without it, Android's home is Google Assistant's screen, which can't load on these displays (Cast is off), so every restart sticks on four spinning dots |
 
 **Never edit the app's settings file directly.** Rewriting it drops its security label, and the app falls back

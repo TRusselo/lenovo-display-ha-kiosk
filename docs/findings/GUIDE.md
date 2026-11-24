@@ -123,12 +123,14 @@ light sensor, a 2018 WebView 66, and a too-quiet mic. That path is in
 
 ## 5. Audio
 
-- Mic gain at the analog stage: in `/system/etc/mixer_paths_openq624_fep.xml`,
-  set `ADC1/2/3 Volume` to 12 (from 6) and `DEC1/2 Volume` to 96 (from 84).
-  Then `adb remount`, push the file, and reboot.
-- Kiosk Satellite: `audio.mic_gain_db=24` and
-  `audio.mic_capture_mode=voice_communication`. Wake word went from about 12
-  inches to 10+ feet.
+- Mic gain: the display records from two digital mics (DMIC1, DMIC2), through
+  `/system/etc/mixer_paths.xml` (path `speaker-stereo-dmic-ef-TERT_MI2S_TX`).
+  Stock gives them 0 dB. Add `DEC1 Volume` and `DEC2 Volume` = 108 (+24 dB)
+  inside `speaker-dmic-endfire-TERT_MI2S_TX`, then `adb remount`, push the file,
+  and reboot. A fixed tone went from -64 dB to -41 dB.
+- Kiosk Satellite: `audio.mic_gain_db=0` and
+  `audio.mic_capture_mode=voice_communication`.
+- Earlier notes changed `mixer_paths_openq624_fep.xml`: nothing loads that file.
 
 ## 6. Kiosk Satellite
 

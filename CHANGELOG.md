@@ -2,6 +2,17 @@
 
 What changed for people converting a display. Newest first.
 
+## Unreleased
+
+- **The microphone gain now works.** The `mixer` step changed a file the display never reads, so the mics
+  stayed at 0 dB and Kiosk Satellite had to make up +24 dB on its own. The display listens through two
+  digital mics; setup now gives them +24 dB in the file the display does read (`mixer_paths.xml`). On the
+  8" a fixed tone went from -64 dB to -41 dB, and the wake word works from across the room.
+- **Kiosk Satellite's mic gain is now 0**, since the display supplies the gain. Setting both to +24 clips
+  loud speech.
+- **Already converted?** Run `lhk setup` again: it adds the gain and sets Kiosk Satellite's mic gain to 0,
+  without its setup pages. Restart the display afterwards.
+
 ## 0.2.7 (2026-11-23)
 
 0.2.6 was never released: its build stopped on two tests on Windows. Everything below is in 0.2.7.

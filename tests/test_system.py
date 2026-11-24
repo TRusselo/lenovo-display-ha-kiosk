@@ -18,51 +18,45 @@ MIXER = """<?xml version="1.0" encoding="ISO-8859-1"?>
 <mixer>
     <!-- These are the initial mixer settings -->
     <ctl name="ADC1 Volume" value="4" />
-    <ctl name="ADC2 Volume" value="4" />
-    <ctl name="ADC3 Volume" value="4" />
-    <ctl name="DEC1 Volume" value="84" />
-    <ctl name="DEC2 Volume" value="84" />
     <ctl name="RX1 Digital Volume" value="84" />
 
-    <path name="adc1">
+    <path name="adc1-TERT_MI2S_TX">
         <ctl name="ADC1 Volume" value="6" />
         <ctl name="DEC1 MUX" value="ADC1" />
     </path>
 
-    <path name="adc2">
-        <ctl name="ADC2 Volume" value="6" />
+    <path name="speaker-dmic-endfire-TERT_MI2S_TX">
+        <ctl name="DEC1 MUX" value="DMIC1" />
+        <ctl name="DEC2 MUX" value="DMIC2" />
+
+        <ctl name="MI2S_TX Channels" value="Two" />
     </path>
 
-    <path name="adc3">
-        <ctl name="ADC3 Volume" value="6" />
+    <path name="speaker-stereo-dmic-ef-TERT_MI2S_TX">
+        <path name="speaker-dmic-endfire-TERT_MI2S_TX" />
     </path>
 
-    <path name="handset-mic">
-        <ctl name="ADC3 Volume" value="6" />
-        <ctl name="DEC2 Volume" value="84" />
+    <path name="speaker-dmic-endfire-SLIMBUS_0_TX">
+        <ctl name="SLIM TX7 MUX" value="DEC7" />
     </path>
 </mixer>
 """
 
 
-def test_patch_mixer_changes_only_the_six_proven_lines():
-    out = patch_mixer(MIXER)
-    before, after = MIXER.splitlines(), out.splitlines()
-    assert len(before) == len(after)
-    changed = [(b.strip(), a.strip()) for b, a in zip(before, after) if b != a]
-    assert changed == [
-        ('<ctl name="DEC1 Volume" value="84" />', '<ctl name="DEC1 Volume" value="96" />'),
-        ('<ctl name="DEC2 Volume" value="84" />', '<ctl name="DEC2 Volume" value="96" />'),
-        ('<ctl name="ADC1 Volume" value="6" />', '<ctl name="ADC1 Volume" value="12" />'),
-        ('<ctl name="ADC2 Volume" value="6" />', '<ctl name="ADC2 Volume" value="12" />'),
-        ('<ctl name="ADC3 Volume" value="6" />', '<ctl name="ADC3 Volume" value="12" />'),
-        ('<ctl name="ADC3 Volume" value="6" />', '<ctl name="ADC3 Volume" value="12" />'),
-    ]
+def test_the_mixer_file_is_the_one_the_audio_system_loads():
+    # The audio HAL loads mixer_paths.xml; nothing reads mixer_paths_openq624_fep.xml (8" e2e, 2026-11-23).
+    assert system.MIXER_PATH == "/system/etc/mixer_paths.xml"
 
 
-def test_patch_mixer_leaves_top_level_adc_defaults():
+def test_patch_mixer_adds_the_gain_to_the_two_digital_mics_only():
     out = patch_mixer(MIXER)
-    assert out.count('<ctl name="ADC1 Volume" value="4" />') == 1
+    added = [l.strip() for l in out.splitlines() if l not in MIXER.splitlines()]
+    assert added == ['<ctl name="DEC1 Volume" value="108" />', '<ctl name="DEC2 Volume" value="108" />']
+    block = out.split('<path name="speaker-dmic-endfire-TERT_MI2S_TX">', 1)[1].split("</path>", 1)[0]
+    assert 'DEC1 Volume" value="108"' in block and 'DEC2 Volume" value="108"' in block
+    # Everything else is kept, byte for byte.
+    assert out.replace('        <ctl name="DEC1 Volume" value="108" />\n', "", 1) \
+              .replace('        <ctl name="DEC2 Volume" value="108" />\n', "", 1) == MIXER
 
 
 def test_patch_mixer_is_idempotent():
@@ -70,9 +64,27 @@ def test_patch_mixer_is_idempotent():
     assert patch_mixer(once) == once
 
 
-def test_patch_mixer_refuses_unexpected_file():
+def test_patch_mixer_corrects_a_different_gain():
+    other = patch_mixer(MIXER).replace('value="108"', 'value="96"')
+    assert patch_mixer(other) == patch_mixer(MIXER)
+
+
+def test_patch_mixer_takes_windows_line_endings():
+    # Read over adb on Windows, the file can come back with CR LF it doesn't have.
+    assert patch_mixer(MIXER.replace("\n", "\r\n")) == patch_mixer(MIXER)
+
+
+@pytest.mark.parametrize("xml", ["<mixer>\n</mixer>\n",
+                                 MIXER.replace('<path name="speaker-dmic-endfire-TERT_MI2S_TX">', '<path name="x">')])
+def test_patch_mixer_refuses_unexpected_file(xml):
     with pytest.raises(MixerPatchError):
-        patch_mixer("<mixer>\n</mixer>\n")
+        patch_mixer(xml)
+
+
+def test_mixer_step_done_only_once_the_gain_is_in(tmp_path):
+    for xml, want in [(MIXER, False), (patch_mixer(MIXER), True)]:
+        runner = FakeRunner({("-s", "S1", "shell", "cat", system.MIXER_PATH): Result(0, xml)})
+        assert system.MixerStep().done(make_ctx(tmp_path, runner)) is want
 
 
 def make_ctx(tmp_path, runner):

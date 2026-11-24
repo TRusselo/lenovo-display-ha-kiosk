@@ -33,7 +33,8 @@ SETTINGS = {
     # Hiding a navigation bar these displays don't have makes Android 8 eat taps
     # (kiosk-satellite#1358).
     "screen.hide_navigation_bar": False,
-    "audio.mic_gain_db": 24,
+    # The display's own mic gain is +24 dB (lhk/mixer.py); more here clips loud speech.
+    "audio.mic_gain_db": 0,
     "audio.mic_capture_mode": "voice_communication",
     # "Act as the home screen": off by default and not set by the setup wizard.
     # Without it Android's home is Google Assistant's screen, which can't load
@@ -240,6 +241,16 @@ class SettingsStep(Step):
     def run(self, ctx) -> None:
         # Its setup signs in to Home Assistant, so the display has to be on Wi-Fi.
         reconnect_wifi(ctx)
+        ensure_root_rw(ctx)        # without root its settings file reads as empty: it'd look not set up
+        xml = _prefs(ctx)
+        # Already set up (a rerun, as on displays set up before 0.2.8): just apply the settings.
+        if not (_password(xml) and _signed_in(xml)):
+            self._wizard(ctx)
+        http, base, token = remote_admin(ctx)
+        self._apply(ctx, http, base, token)
+
+    def _wizard(self, ctx) -> None:
+        """Kiosk Satellite's own 5 setup pages, on a display where it isn't set up yet."""
         # Nothing else opens it: without this the display stays on the Android Things settings.
         shell(ctx, "monkey", "-p", PKG, "-c", "android.intent.category.LAUNCHER", "1", check=False)
         ctx.ui.physical("Kiosk Satellite is open. Go through its 5 setup pages:\n"
@@ -265,7 +276,8 @@ class SettingsStep(Step):
                 break
             ctx.ui.say("Kiosk Satellite isn't signed in to Home Assistant yet. Finish its setup on the "
                        "display first.")
-        http, base, token = remote_admin(ctx)
+
+    def _apply(self, ctx, http, base, token) -> None:
         r = http.patch(f"{base}/api/settings", json=dict(SETTINGS),
                        headers={"Authorization": f"Bearer {token}"}, timeout=30)
         r.raise_for_status()

@@ -127,7 +127,7 @@ class FakeAdmin:
         assert url.endswith("/api/settings") and headers["Authorization"] == "Bearer tok123"
         self.patches.append(json)
         self.runner.responses[("-s", "S1", "shell", "cat", PREFS)] = Result(
-            0, prefs_xml(nav="false", gain="24", mode="voice_communication", home="true"))
+            0, prefs_xml(nav="false", gain="0", mode="voice_communication", home="true"))
         r = type("R", (), {})()
         r.json = lambda: {"ok": True, "rejected": [], "errors": {}}
         r.raise_for_status = lambda: None
@@ -135,19 +135,19 @@ class FakeAdmin:
 
 
 def test_settings_applied_and_verified(tmp_path):
-    runner = FakeRunner({("-s", "S1", "shell", "cat", PREFS): Result(0, prefs_xml())})
+    runner = FakeRunner({("-s", "S1", "shell", "cat", PREFS): [Result(0, "<map></map>"), Result(0, prefs_xml())]})
     admin = FakeAdmin(runner)
     ctx = make_ctx(tmp_path, runner, http=admin)
     step = kiosk.SettingsStep()
     assert not step.done(ctx)
     step.run(ctx)
-    assert admin.patches == [{"screen.hide_navigation_bar": False, "audio.mic_gain_db": 24, "home.enabled": True,
+    assert admin.patches == [{"screen.hide_navigation_bar": False, "audio.mic_gain_db": 0, "home.enabled": True,
                               "audio.mic_capture_mode": "voice_communication"}]
     assert step.done(ctx)
 
 
 def test_settings_password_never_logged(tmp_path, caplog):
-    runner = FakeRunner({("-s", "S1", "shell", "cat", PREFS): Result(0, prefs_xml())})
+    runner = FakeRunner({("-s", "S1", "shell", "cat", PREFS): [Result(0, "<map></map>"), Result(0, prefs_xml())]})
     ctx = make_ctx(tmp_path, runner, http=FakeAdmin(runner))
     with caplog.at_level(logging.DEBUG):
         kiosk.SettingsStep().run(ctx)
@@ -172,7 +172,7 @@ def test_settings_opens_kiosk_satellite_before_waiting_for_its_wizard(tmp_path, 
     kiosk.SettingsStep().run(make_ctx(tmp_path, runner, http=FakeAdmin(runner)))
     launch = [i for i, c in enumerate(runner.calls)
               if "monkey" in c and kiosk.PKG in c and "android.intent.category.LAUNCHER" in c]
-    first_wait = next(i for i, c in enumerate(runner.calls) if PREFS in c)
+    first_wait = [i for i, c in enumerate(runner.calls) if PREFS in c][1]   # the first read checks it's set up
     assert launch and launch[0] < first_wait
 
 
@@ -193,6 +193,26 @@ def test_settings_wait_for_the_home_assistant_sign_in_not_just_the_admin_passwor
     assert "ha-secret" not in str(runner.calls)
 
 
+def test_the_mic_gain_is_left_to_the_display_not_kiosk_satellite():
+    # The display's own mic gain is now +24 dB (lhk/mixer.py); Kiosk Satellite's +24 on top clips.
+    assert kiosk.SETTINGS["audio.mic_gain_db"] == 0
+
+
+def test_a_rerun_on_a_set_up_display_applies_the_settings_without_its_setup_pages(tmp_path, monkeypatch):
+    # The kitchen display (set up with mic gain 24) gets the new 0 without its 5 setup pages again.
+    runner = FakeRunner({("-s", "S1", "shell", "cat", PREFS): Result(
+        0, prefs_xml(nav="false", gain="24", mode="voice_communication", home="true"))})
+    admin = FakeAdmin(runner)
+    ctx = make_ctx(tmp_path, runner, http=admin)
+    step = kiosk.SettingsStep()
+    assert not step.done(ctx)
+    step.run(ctx)
+    assert admin.patches and admin.patches[0]["audio.mic_gain_db"] == 0
+    assert not [l for l in ctx.ui.lines if l.startswith(("[physical]", "[ask]", "[alert]"))]
+    assert not any("monkey" in c for c in runner.calls)
+    assert step.done(ctx)
+
+
 def test_settings_not_done_until_signed_in_to_home_assistant(tmp_path):
     runner = FakeRunner({("-s", "S1", "shell", "cat", PREFS): Result(
         0, prefs_xml(nav="false", gain="24", mode="voice_communication", home="true", signed_in=False))})
@@ -200,7 +220,7 @@ def test_settings_not_done_until_signed_in_to_home_assistant(tmp_path):
 
 
 def test_settings_describes_the_wizard_pages(tmp_path, monkeypatch):
-    runner = FakeRunner({("-s", "S1", "shell", "cat", PREFS): Result(0, prefs_xml())})
+    runner = FakeRunner({("-s", "S1", "shell", "cat", PREFS): [Result(0, "<map></map>"), Result(0, prefs_xml())]})
     monkeypatch.setattr(kiosk.time, "sleep", lambda s: None)
     ctx = make_ctx(tmp_path, runner, http=FakeAdmin(runner))
     kiosk.SettingsStep().run(ctx)
@@ -213,7 +233,7 @@ def test_settings_wait_for_enter_after_finish(tmp_path, monkeypatch):
     # Run 2: Kiosk Satellite saves the Home Assistant sign-in on page 2 of 5,
     # so the tool still went ahead mid-setup. Only the user knows when they
     # pressed Finish.
-    runner = FakeRunner({("-s", "S1", "shell", "cat", PREFS): Result(0, prefs_xml())})
+    runner = FakeRunner({("-s", "S1", "shell", "cat", PREFS): [Result(0, "<map></map>"), Result(0, prefs_xml())]})
     monkeypatch.setattr(kiosk.time, "sleep", lambda s: None)
     admin = FakeAdmin(runner)
     ctx = make_ctx(tmp_path, runner, http=admin)
@@ -229,7 +249,7 @@ def test_settings_wait_for_enter_after_finish(tmp_path, monkeypatch):
 
 def test_settings_enter_too_early_asks_again(tmp_path, monkeypatch):
     runner = FakeRunner({("-s", "S1", "shell", "cat", PREFS): [
-        Result(0, prefs_xml(signed_in=False)), Result(0, prefs_xml())]})
+        Result(0, "<map></map>"), Result(0, prefs_xml(signed_in=False)), Result(0, prefs_xml())]})
     monkeypatch.setattr(kiosk.time, "sleep", lambda s: None)
     ctx = make_ctx(tmp_path, runner, http=FakeAdmin(runner))
     kiosk.SettingsStep().run(ctx)
@@ -239,7 +259,7 @@ def test_settings_enter_too_early_asks_again(tmp_path, monkeypatch):
 
 def test_settings_warns_in_caps_that_setup_is_not_done_after_finish(tmp_path, monkeypatch):
     # Run 3: after Finish, Kiosk Satellite starts up, which looks like the end.
-    runner = FakeRunner({("-s", "S1", "shell", "cat", PREFS): Result(0, prefs_xml())})
+    runner = FakeRunner({("-s", "S1", "shell", "cat", PREFS): [Result(0, "<map></map>"), Result(0, prefs_xml())]})
     monkeypatch.setattr(kiosk.time, "sleep", lambda s: None)
     ctx = make_ctx(tmp_path, runner, http=FakeAdmin(runner))
     kiosk.SettingsStep().run(ctx)
@@ -329,7 +349,7 @@ def test_downloads_step_fetches_kiosk_satellite_before_the_display_is_touched(tm
 def test_wizard_offers_the_browser_setup_link_above_the_warning(tmp_path, monkeypatch):
     # The wizard can be done from a browser at the display's address, port 2324,
     # which makes pasting the Home Assistant address and token easy.
-    runner = FakeRunner({("-s", "S1", "shell", "cat", PREFS): Result(0, prefs_xml()),
+    runner = FakeRunner({("-s", "S1", "shell", "cat", PREFS): [Result(0, "<map></map>"), Result(0, prefs_xml())],
                          ("-s", "S1", "shell", "ip", "-4", "addr", "show", "wlan0"):
                              Result(0, "    inet 10.0.0.5/24 brd 10.0.0.255 scope global wlan0\n")})
     monkeypatch.setattr(kiosk.time, "sleep", lambda s: None)
@@ -357,7 +377,20 @@ def test_settings_done_gets_root_first_so_a_restart_doesnt_hide_the_settings(tmp
     def root(ctx):
         rooted.append(True)
         runner.responses[("-s", "S1", "shell", "cat", PREFS)] = Result(
-            0, prefs_xml(nav="false", gain="24", mode="voice_communication", home="true"))
+            0, prefs_xml(nav="false", gain="0", mode="voice_communication", home="true"))
     monkeypatch.setattr(kiosk, "ensure_root_rw", root)
     assert kiosk.SettingsStep().done(make_ctx(tmp_path, runner))
     assert rooted
+
+
+def test_a_rerun_after_a_restart_gets_root_before_checking_kiosk_satellite_is_set_up(tmp_path, monkeypatch):
+    # Without root the settings file reads as empty, which would look like a display still to set up.
+    runner = FakeRunner({("-s", "S1", "shell", "cat", PREFS): Result(0, "")})
+
+    def root(ctx):
+        if not runner.responses[("-s", "S1", "shell", "cat", PREFS)].out:
+            runner.responses[("-s", "S1", "shell", "cat", PREFS)] = Result(0, prefs_xml(gain="24"))
+    monkeypatch.setattr(kiosk, "ensure_root_rw", root)
+    ctx = make_ctx(tmp_path, runner, http=FakeAdmin(runner))
+    kiosk.SettingsStep().run(ctx)
+    assert not [l for l in ctx.ui.lines if l.startswith(("[physical]", "[ask]"))]

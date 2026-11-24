@@ -108,7 +108,7 @@ These are proven on two displays; `GUIDE.md` and `NOTES.md` have the detail.
 - `adb root`, `adb disable-verity`, reboot, `adb remount`.
 - Disable the four Google packages from `GUIDE.md`. Keep `sparrow.oem` and
   `androidthingshost`.
-- Mic gain in `mixer_paths_openq624_fep.xml`.
+- Mic gain in `mixer_paths.xml` (the two digital mics, +24 dB).
 - Kiosk Satellite (`armeabi-v7a`), its app ops and grants, and device owner.
 - `screen.hide_navigation_bar=false`.
 
