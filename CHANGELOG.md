@@ -2,7 +2,7 @@
 
 What changed for people converting a display. Newest first.
 
-## Unreleased
+## 0.2.6 (2026-11-23)
 
 From the clock tool ([lenovo-clock-ha-kiosk](https://github.com/TRusselo/lenovo-clock-ha-kiosk)):
 

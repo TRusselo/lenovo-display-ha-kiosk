@@ -2,4 +2,4 @@ import lhk
 
 
 def test_version():
-    assert lhk.__version__ == "0.2.5"
+    assert lhk.__version__ == "0.2.6"
