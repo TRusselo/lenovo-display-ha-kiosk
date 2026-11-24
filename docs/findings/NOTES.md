@@ -401,14 +401,10 @@ path mirodawa used to get a dashboard on the 8". Risks to respect:
 - **Audio HW present:** ALSA card `msm8953-openq624-snd-card`. The speaker plays through a TI TAS5825M
   amp with its own DSP, on I2C bus `I2C1` at 0x49 (corrected 2026-11-23; a `wsa881x-i2c-codec` is listed too,
   but Lenovo tunes the TAS). Lenovo's Things app (`sparrow.oem`, class `AmpSetupValues`) loads ~1,500
-  registers into it once at boot, about 3 s after it starts playing silence: a +9 dB bass peak at 79 Hz over
-  high-pass filters, and a 3-band compressor (expander, compressor and limiter per band; layout as in TI's
-  SLAA786A). An older app version has a different tuning (about +7 dB, 80-120 Hz) with the same layout.
-  `bootfix` installs `ks-amp-tune`, which lowers the peak to +3 dB and flattens the expander and compressor;
-  see `lhk/amp.py`. Only the `peripheralman` domain may open `/dev/i2c-1`, hence its file label. On about one boot in three the
-  first run is killed by SIGINT about a second after init starts it, even with SIGINT ignored (so
-  probably before its first instruction; sender not found with signal tracing), so `ks-boot-fix.rc`
-  runs it a second time once the light-sensor fix and the first run have stopped. The mics are two digital mics on the codec's DMIC1/DMIC2 inputs
+  registers into it once at boot: a +9 dB bass peak at 79 Hz over high-pass filters, and a 3-band
+  compressor (expander, compressor and limiter per band; layout as in TI's SLAA786A). 0.2.9 lowered the peak
+  to +3 dB and flattened the expander and compressor at boot; the assistant's voice sounded bad with it, so
+  0.2.10 took it out and Lenovo's tuning stays. The mics are two digital mics on the codec's DMIC1/DMIC2 inputs
   (corrected 2026-11-23; the PMIC analog inputs aren't used). Output device `AUDIO_DEVICE_OUT_SPEAKER` live. End-to-end
   mic/speaker test still pending (no tinycap/tinyplay on the build).
 - **Screen:** after AVB unlock + debug flash the Google Assistant launcher

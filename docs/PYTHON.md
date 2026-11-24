@@ -42,19 +42,7 @@ javac --release 8 -cp $ANDROID_SDK/platforms/android-35/android.jar -d build/cla
 $ANDROID_SDK/build-tools/35.0.0/d8 --min-api 26 --lib $ANDROID_SDK/platforms/android-35/android.jar --output build/ks-volkeys.jar build/classes.jar
 ```
 
-## 4. The speaker tuning tool (`ks-amp-tune`)
-
-Download `ks-amp-tune` from the [latest release](../../../releases) and put it in the repo folder.
-
-To build it yourself, you need clang and lld:
-
-```bash
-cd assets/bootfix/amp
-mkdir -p build
-clang --target=armv7a-linux-gnueabi -mfloat-abi=soft -Os -ffreestanding -fno-stack-protector -nostdlib -static -fuse-ld=lld -o build/ks-amp-tune ks-amp-tune.c
-```
-
-## 5. Run
+## 4. Run
 
 ```bash
 python -m lhk setup

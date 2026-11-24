@@ -21,11 +21,8 @@ SENSORS_OK = "15:05:55 + 0x00000002 pid= 1930 uid=10036 package=me.jxl.kiosk_sat
 def make_ctx(tmp_path, runner):
     jar = tmp_path / "ks-volkeys.jar"
     jar.write_bytes(b"PK")
-    tool = tmp_path / "ks-amp-tune"
-    tool.write_bytes(b"\x7fELF\r\n")
     c = Context(runner=runner, ui=FakeUI(), paths=Paths(tmp_path))
-    c.state.update(tools=Tools(adb=Path("adb"), fastboot=Path("fastboot")), serial="S1", volkeys_jar=jar,
-                   amp_tool=tool)
+    c.state.update(tools=Tools(adb=Path("adb"), fastboot=Path("fastboot")), serial="S1", volkeys_jar=jar)
     return c
 
 
@@ -36,7 +33,6 @@ def healthy_runner():
         ("-s", "S1", "shell", "ps", "-A", "-o", "LABEL,ARGS"): Result(0, PS_OK),
         ("-s", "S1", "shell", "dumpsys", "sensorservice"): Result(0, SENSORS_OK),
         ("-s", "S1", "shell", "dumpsys", "input"): Result(0, "Window #1 HomeAlias\n"),
-        ("-s", "S1", "shell", "su", "0", "/system/bin/ks-amp-tune", "check"): Result(0, "tuned\n"),
         ("-s", "S1", "shell", "cmd", "package", "resolve-activity"): Result(
             0, "priority=0 preferredOrder=0\nme.jxl.kiosk_satellite/.HomeAlias\n"),
     })
@@ -60,7 +56,6 @@ def test_bootfix_push_and_labels_exact(tmp_path, monkeypatch):
         ("ks-boot-fix.sh", "/system/bin/ks-boot-fix.sh"),
         ("ks-volume-keys.sh", "/system/bin/ks-volume-keys.sh"),
         ("ks-volkeys.jar", "/system/framework/ks-volkeys.jar"),
-        ("ks-amp-tune", "/system/bin/ks-amp-tune"),
         ("ks-boot-fix.rc", "/system/etc/init/ks-boot-fix.rc"),
     ]
     shells = [c[4:] for c in runner.calls if c[3] == "shell"]
@@ -71,9 +66,6 @@ def test_bootfix_push_and_labels_exact(tmp_path, monkeypatch):
     assert ["chcon", "u:object_r:dumpstate_exec:s0", "/system/bin/ks-boot-fix.sh"] in shells
     assert ["chcon", "u:object_r:dumpstate_exec:s0", "/system/bin/ks-volume-keys.sh"] in shells
     assert ["restorecon", "/system/framework/ks-volkeys.jar"] in shells
-    # The amp tool runs in the domain of Android Things' peripheral daemon, the one that may open the I2C bus.
-    assert ["chmod", "755", "/system/bin/ks-amp-tune"] in shells
-    assert ["chcon", "u:object_r:peripheralman_exec:s0", "/system/bin/ks-amp-tune"] in shells
     assert ["restorecon", "/system/etc/init/ks-boot-fix.rc"] in shells
     assert rebooted == [True]
 
@@ -223,65 +215,22 @@ def test_the_wait_in_done_says_so_on_screen(tmp_path, monkeypatch):
     assert any(l.startswith("[busy]") and "please wait" in l for l in ctx.ui.lines)
 
 
-# --- The speaker tuning (ks-amp-tune) -----------------------------------------------------------
+# 0.2.9 installed /system/bin/ks-amp-tune, which rewrote Lenovo's speaker tuning at boot; the assistant's
+# voice sounded bad with it, and 0.2.10 took it out. A display set up with 0.2.9 still has it.
+OLD_AMP_TOOL = "/system/bin/ks-amp-tune"
 
-def test_the_amp_tool_is_pushed_byte_for_byte(tmp_path):
+
+def test_the_step_removes_0_2_9s_speaker_tool(tmp_path):
     runner = healthy_runner()
-    ctx = make_ctx(tmp_path, runner)
-    bootfix.BootFixStep().run(ctx)
-    pushed = {Path(c[5]).name: Path(c[4]) for c in runner.calls if c[3] == "push"}
-    assert pushed["ks-amp-tune"].read_bytes() == b"\x7fELF\r\n"     # a program: no line-ending fix
+    bootfix.BootFixStep().run(make_ctx(tmp_path, runner))
+    shells = [c[4:] for c in runner.calls if c[3] == "shell"]
+    assert ["rm", "-f", OLD_AMP_TOOL] in shells
+    assert shells.index(["rm", "-f", OLD_AMP_TOOL]) < shells.index(
+        ["restorecon", "/system/etc/init/ks-boot-fix.rc"])
 
 
-def test_a_missing_amp_tool_says_where_to_get_it(tmp_path, monkeypatch):
-    ctx = make_ctx(tmp_path, healthy_runner())
-    ctx.state["amp_tool"] = tmp_path / "nowhere"
-    real = bootfix._repo_file
-    monkeypatch.setattr(bootfix, "_repo_file",
-                        lambda rel: tmp_path / "missing" / rel if "ks-amp-tune" in rel else real(rel))
-    with pytest.raises(bootfix.BootFixFailed, match="release page"):
-        bootfix.BootFixStep().run(ctx)
-
-
-@pytest.mark.parametrize("said", ["stock\n", "unknown\n", "error\n", ""])
-def test_verify_reports_the_speaker_tuning_not_applied(tmp_path, said):
-    runner = healthy_runner()
-    runner.responses[("-s", "S1", "shell", "su", "0", "/system/bin/ks-amp-tune", "check")] = Result(0, said)
-    problems = bootfix.verify(make_ctx(tmp_path, runner), wait=0)
-    assert any("speaker tuning" in p for p in problems)
-
-
-def test_verify_waits_for_the_speaker_tuning(tmp_path):
-    # Lenovo's app loads the amp a while after boot, and the tool only writes after that.
-    runner = healthy_runner()
-    runner.responses[("-s", "S1", "shell", "su", "0", "/system/bin/ks-amp-tune", "check")] = [
-        Result(0, "not-loaded\n"), Result(0, "stock\n"), Result(0, "tuned\n")]
-    assert bootfix.verify(make_ctx(tmp_path, runner)) == []
-
-
-def test_init_starts_the_amp_tool_once_after_boot():
-    rc = (Path(__file__).resolve().parent.parent / "assets/bootfix/ks-boot-fix.rc").read_text()
-    block = rc[rc.index("service ks_amp_tune"):].split("\n\n")[0]
-    assert block.splitlines()[0] == "service ks_amp_tune /system/bin/ks-amp-tune"
-    assert "oneshot" in block and "disabled" in block
-    assert "seclabel" not in block          # the file's label picks the domain
-    trigger = rc[rc.index("on property:sys.boot_completed=1"):]
-    assert "start ks_amp_tune" in trigger
-
-
-def test_the_tuning_check_works_before_adb_is_root(tmp_path):
-    # Only root may open the amp's I2C bus, and done() can run before the tool has made adb root.
-    runner = healthy_runner()
-    bootfix.verify(make_ctx(tmp_path, runner))
-    assert ["su", "0", bootfix.AMP_TOOL, "check"] in [c[4:] for c in runner.calls if c[3] == "shell"]
-
-
-def test_init_runs_the_amp_tool_again_once_the_first_run_has_stopped():
-    # One boot in seven, something sent the first run SIGINT a second after it started (8", 2026-11-23).
-    # A second run, after the light-sensor fix is done, catches that; it can never overlap the first.
-    rc = (Path(__file__).resolve().parent.parent / "assets/bootfix/ks-boot-fix.rc").read_text()
-    block = rc[rc.index("service ks_amp_tune_again"):].split("\n\n")[0]
-    assert block.splitlines()[0] == "service ks_amp_tune_again /system/bin/ks-amp-tune"
-    assert "oneshot" in block and "disabled" in block
-    trigger = "on property:init.svc.ks_boot_fix=stopped && property:init.svc.ks_amp_tune=stopped"
-    assert trigger + "\n    start ks_amp_tune_again" in rc
+def test_a_display_with_0_2_9s_speaker_tool_isnt_done(tmp_path, monkeypatch):
+    listing = "\n".join([r for _, r, _, _ in bootfix.FILES] + [OLD_AMP_TOOL])
+    runner = FakeRunner({("-s", "S1", "shell", "ls"): Result(0, listing)})
+    monkeypatch.setattr(bootfix, "verify", lambda ctx, wait=90: [])
+    assert not bootfix.BootFixStep().done(make_ctx(tmp_path, runner))

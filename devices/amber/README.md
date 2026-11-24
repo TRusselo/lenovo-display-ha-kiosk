@@ -314,32 +314,25 @@ to the setup wizard.
 
 **Check:** with the app open, `adb shell dumpsys input | grep -c nav_input_consumer` prints `0`.
 
-## 16. `bootfix`: light sensor, volume buttons and speaker
+## 16. `bootfix`: light sensor and volume buttons
 
 - **Volume buttons:** these are GPIOs that only a Google component used to read. The fix is a small helper that
   turns presses into volume keys.
 - **Light sensor:** it appears after Kiosk Satellite has already started, so the fix restarts Kiosk Satellite
   once the sensor shows up.
-- **Speaker:** Lenovo's app loads a tuning into the speaker amp at boot: +9 dB of bass at 79 Hz and a
-  compressor that pushes quiet sounds down and clamps loud ones. Loud bass rattled the speaker, thunder lost
-  its bass and rain faded. `ks-amp-tune` waits for Lenovo's load, then lowers the bass to +3 dB and makes the
-  compressor flat. The limiter at the top stays, to protect the speaker. For more bass, use Kiosk Satellite's
-  equalizer. On a tuning it doesn't recognise, it changes nothing.
 
-Build `ks-volkeys.jar` and `ks-amp-tune` (see [docs/PYTHON.md](../../docs/PYTHON.md)) or take them from a
-release. Then:
+Build `ks-volkeys.jar` (see [docs/PYTHON.md](../../docs/PYTHON.md)) or take it from a release. Then:
 
 ```bash
 adb push assets/bootfix/ks-boot-fix.sh /system/bin/ks-boot-fix.sh
 adb push assets/bootfix/ks-volume-keys.sh /system/bin/ks-volume-keys.sh
 adb push ks-volkeys.jar /system/framework/ks-volkeys.jar
-adb push ks-amp-tune /system/bin/ks-amp-tune
 adb push assets/bootfix/ks-boot-fix.rc /system/etc/init/ks-boot-fix.rc
-adb shell chmod 755 /system/bin/ks-boot-fix.sh /system/bin/ks-volume-keys.sh /system/bin/ks-amp-tune
+adb shell chmod 755 /system/bin/ks-boot-fix.sh /system/bin/ks-volume-keys.sh
 adb shell chmod 644 /system/framework/ks-volkeys.jar /system/etc/init/ks-boot-fix.rc
 adb shell chcon u:object_r:dumpstate_exec:s0 /system/bin/ks-boot-fix.sh /system/bin/ks-volume-keys.sh
-adb shell chcon u:object_r:peripheralman_exec:s0 /system/bin/ks-amp-tune
 adb shell restorecon /system/framework/ks-volkeys.jar /system/etc/init/ks-boot-fix.rc
+adb shell rm -f /system/bin/ks-amp-tune   # only there if the display was set up with 0.2.9
 adb reboot
 ```
 
@@ -349,7 +342,6 @@ adb reboot
 - `adb shell getprop init.svc.ks_volume_keys` prints `running`
 - `adb shell dumpsys sensorservice | grep kiosk_satellite.LightSensor` finds a line
 - pressing volume up changes the volume
-- `adb shell su 0 /system/bin/ks-amp-tune check` prints `tuned` (within a minute or so of the restart)
 
 ## 17. `casting-helper`: Casting Helper (optional)
 
