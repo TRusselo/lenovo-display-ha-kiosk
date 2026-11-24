@@ -182,13 +182,19 @@ def change(ctx) -> bool:
         password = ctx.ui.ask("Its password (leave empty for an open network; it isn't saved or logged): ",
                               secret=True)
         join_wifi(ctx, ssid, password)
+        got = []
+
+        def joined_now():
+            got.append(wifi_ip(ctx))
+            return current_ssid(ctx) == ssid and bool(got[-1])
         with ctx.ui.busy(f"Waiting for the display to join {ssid}"):
-            joined = _wait(lambda: current_ssid(ctx) == ssid and bool(wifi_ip(ctx)), JOIN_WAIT)
+            time.sleep(5)        # the same network again: it drops off first, then rejoins
+            joined = _wait(joined_now, JOIN_WAIT)
         if not joined:
             ctx.ui.say(f"The display didn't join {ssid}. Check the name and password, and that it's a 2.4 or "
                        "5 GHz WPA network, then run lhk wifi again." + (f" It's still on {now}." if now else ""))
             return False
-        ctx.ui.ok(f"The display is on {ssid}, at {wifi_ip(ctx)}.")
+        ctx.ui.ok(f"The display is on {ssid}, at {got[-1]}.")
         ctx.ui.say("Networks it saved before stay saved: if it ever goes back to one of them after a restart, "
                    "run lhk wifi again.")
         now = ssid

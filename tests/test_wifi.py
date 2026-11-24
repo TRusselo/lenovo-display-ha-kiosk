@@ -236,3 +236,14 @@ def test_lhk_wifi_waits_for_the_display_to_be_plugged_in(tmp_path, monkeypatch, 
     assert w.change(c)
     assert c.state["serial"] == "S1"
     assert any("[physical]" in l and "USB" in l for l in c.ui.lines)
+
+
+def test_rejoining_the_same_network_reports_the_address_it_waited_for(tmp_path, monkeypatch, converted):
+    # Typing the network it was on passed the check at once and printed "at ." (kitchen, 2026-11-23).
+    d = Display(monkeypatch)
+    ips = iter(["10.1.1.78"])          # then none for a moment, as it rejoins
+    monkeypatch.setattr(wifi, "wifi_ip", lambda ctx: next(ips, ""))
+    c = _ctx(tmp_path, d, ["Home", "home-password", ""])
+    assert wifi.change(c)
+    ok = [l for l in c.ui.lines if l.startswith("[ok]") and "Home" in l]
+    assert ok and ok[0].endswith("at 10.1.1.78.")
