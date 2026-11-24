@@ -25,9 +25,9 @@ def test_runs_edl_through_uv_with_its_own_requirements(tmp_path, monkeypatch):
     ctx = Context(runner=runner, ui=FakeUI(), paths=Paths(tmp_path))
     edl_mod.Edl(ctx).read(["boot_a"], tmp_path / "out")
     cmd = runner.calls[0]
-    assert cmd[:8] == [str(uv), "run", "--no-project", "--python", "3.12", "--with-requirements",
+    assert cmd[:9] == [str(uv), "run", "--isolated", "--no-project", "--python", "3.12", "--with-requirements",
                        str(edl_dir / "edl-abc" / "requirements.txt"), "python"]
-    assert cmd[8:11] == [str(edl_dir / "edl-abc" / "edl.py"), "r", "boot_a"]
+    assert cmd[9:12] == [str(edl_dir / "edl-abc" / "edl.py"), "r", "boot_a"]
     assert cmd[-2:] == ["--memory=eMMC", f"--loader={fw / edl_mod.LOADER}"]
 
 

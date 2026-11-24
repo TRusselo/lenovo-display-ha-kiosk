@@ -24,5 +24,8 @@ def uv_path(ctx) -> Path:
 
 
 def uv_python(uv: Path, *with_args: str) -> list:
-    """The command prefix: uv run … python, with packages from with_args."""
-    return [uv, "run", "--no-project", "--python", PYTHON, *with_args, "python"]
+    """The command prefix: uv run … python, with packages from with_args.
+    --isolated: from a source checkout, uv would otherwise use the checkout's own Python 3.12 .venv when it
+    already holds the package, and Windows Smart App Control can block that copy (pycryptodome: "No unlock
+    credentials were found", issue 5)."""
+    return [uv, "run", "--isolated", "--no-project", "--python", PYTHON, *with_args, "python"]

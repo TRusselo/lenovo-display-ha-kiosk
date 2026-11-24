@@ -16,6 +16,8 @@ Once the display is converted, Android itself also appears over adb.
 2. Put the display in fastboot (the tool tells you how).
 3. Open **Device Manager**, right-click the device with a warning icon, choose **Update driver → Browse my
    computer**, and pick the unzipped folder.
+4. If Windows says it found no driver there, choose **Update driver → Browse my computer → Let me pick from a
+   list**, then **Android Device → Android Bootloader Interface**. Accept the warning.
 
 **EDL (backup and restore only):** the tool talks to the display directly. It brings its own libusb, but
 Windows also needs the **WinUSB** driver attached to the display.

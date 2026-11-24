@@ -85,7 +85,7 @@ def test_unlock_runs_tool_through_uv(tmp_path, monkeypatch):
     monkeypatch.setattr(unlock, "wait_for_mode", lambda target, ctx, **kw: "S1")
     unlock.UnlockStep().run(make_ctx(tmp_path, runner))
     cmd = [c for c in runner.calls if any("at_auth_unlock.py" in a for a in c)][0]
-    assert cmd == ["uvbin", "run", "--no-project", "--python", "3.12", "--with", "pycryptodome", "python",
+    assert cmd == ["uvbin", "run", "--isolated", "--no-project", "--python", "3.12", "--with", "pycryptodome", "python",
                    str(tool / "at_auth_unlock.py"), "-s", "S1", str(tool / "creds")]
 
 
