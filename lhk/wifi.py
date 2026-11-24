@@ -21,6 +21,7 @@ from pathlib import Path
 from lhk import staticip
 from lhk.downloads import fetch
 from lhk.identity import check_adb_identity
+from lhk.modes import Mode, detect
 from lhk.runner import Tools, platform_id
 from lhk.steps import Step
 from lhk.system import (SetupFailed, adb, ensure_root_rw, join_wifi, reboot_and_wait, serial, shell,
@@ -136,10 +137,34 @@ class FixedAddressStep(Step):
         set_address(ctx, static)
 
 
+PLUG_IN_WAIT = 10 * 60
+
+
+def _wait_for_display(ctx) -> None:
+    """The display on USB: asked for, then waited for, when it isn't plugged in yet."""
+    asked = False
+    for _ in range(PLUG_IN_WAIT // 3):
+        found = [s for m, s in detect(ctx.runner, ctx.state["tools"]) if m == Mode.ADB]
+        if len(found) == 1:
+            ctx.state.setdefault("serial", found[0])
+            return
+        if found:
+            serial(ctx)          # more than one: says so, and stops
+            return
+        if not asked:
+            ctx.ui.physical("Plug the display's USB cable into this computer, with the display started up. "
+                            "Only this display: unplug any other.")
+            asked = True
+        time.sleep(3)
+    raise SetupFailed("The display didn't show up on USB within 10 minutes. Check the cable, and that the "
+                      "display has started up, then run lhk wifi again.")
+
+
 def change(ctx) -> bool:
     """lhk wifi: a new network, a fixed address, or both. False when the display couldn't join."""
     fetch(f"platform-tools-{platform_id()}", ctx)
     ctx.state["tools"] = Tools.locate(ctx.paths.cache)
+    _wait_for_display(ctx)
     wait_booted(ctx, why="the display to start")
     if not check_adb_identity(ctx, serial(ctx)).is_target_build:
         raise SetupFailed("This display isn't converted (lhk setup hasn't run on it), so lhk wifi doesn't "

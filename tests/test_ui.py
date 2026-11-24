@@ -218,6 +218,9 @@ LINK = "\x1b[4;38;5:80m".replace(":", ";")
 
 
 def test_links_in_whats_next_are_coloured(monkeypatch):
+    import lhk.ui
+    monkeypatch.setattr(lhk.ui, "_windows_vt_on", lambda: True)     # CI's Windows runner has no real console
+    monkeypatch.setattr(lhk.ui, "_old_windows_console", lambda: False)
     monkeypatch.delenv("NO_COLOR", raising=False)
     out = _Tty()
     UI(stdout=out).section("What's next", ["Change Kiosk Satellite's settings from a browser: http://10.1.1.40:2324",
@@ -229,6 +232,9 @@ def test_links_in_whats_next_are_coloured(monkeypatch):
 
 
 def test_the_browser_address_for_kiosk_satellites_setup_is_coloured(monkeypatch):
+    import lhk.ui
+    monkeypatch.setattr(lhk.ui, "_windows_vt_on", lambda: True)     # CI's Windows runner has no real console
+    monkeypatch.setattr(lhk.ui, "_old_windows_console", lambda: False)
     monkeypatch.delenv("NO_COLOR", raising=False)
     out = _Tty()
     UI(stdout=out).say("Easier in a browser, for pasting your address and token:\n  http://10.1.1.40:2324")

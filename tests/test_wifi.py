@@ -166,6 +166,7 @@ def test_a_fixed_address_typed_in_setup_is_set(tmp_path, monkeypatch):
 def converted(monkeypatch):
     monkeypatch.setattr(wifi, "fetch", lambda id_, ctx: None)
     monkeypatch.setattr(wifi, "wait_booted", lambda ctx, **kw: None)
+    monkeypatch.setattr(wifi, "detect", lambda runner, tools: [(wifi.Mode.ADB, "S1")])
     monkeypatch.setattr(wifi, "check_adb_identity",
                         lambda ctx, s: type("I", (), {"is_target_build": True})())
     joined = []
@@ -222,3 +223,16 @@ def test_the_wifi_command_stops_adb_at_the_end(tmp_path, monkeypatch):
     monkeypatch.setattr(cli, "_stop_adb", lambda ctx: called.append("stop"))
     assert cli.main(["wifi", "--workdir", str(tmp_path)]) == 0
     assert called == ["change", "stop"]
+
+
+def test_lhk_wifi_waits_for_the_display_to_be_plugged_in(tmp_path, monkeypatch, converted):
+    # It stopped at once with "isn't connected over USB" when started before the display was plugged in.
+    from lhk import wifi as w
+    d = Display(monkeypatch)
+    c = _ctx(tmp_path, d, ["", ""])
+    c.state.pop("serial")
+    found = iter([[], [], [(w.Mode.ADB, "S1")]])
+    monkeypatch.setattr(w, "detect", lambda runner, tools: next(found))
+    assert w.change(c)
+    assert c.state["serial"] == "S1"
+    assert any("[physical]" in l and "USB" in l for l in c.ui.lines)
