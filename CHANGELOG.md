@@ -20,8 +20,11 @@ From the clock tool ([lenovo-clock-ha-kiosk](https://github.com/TRusselo/lenovo-
   startups cut short in a row. Running on an 8", and after a restart.
 - **Links stand out:** addresses and links are underlined cyan on a terminal, in "What's next" too, so it's
   clear they can be clicked. That includes Kiosk Satellite's browser setup address.
-- **Fixes from the 8" test:** after a restart the Kiosk Satellite settings and boot-fix steps could look
-  unfinished and run again (adb had no root yet, and the boot fixes weren't given time to start).
+- **Fixes from the 8" tests:** after a restart the Kiosk Satellite settings and boot-fix steps could look
+  unfinished and run again (adb had no root yet, and the boot fixes weren't given time to start). The
+  boot-fix check no longer takes `ls`'s "No such file" errors for the files, which made it wait 90 seconds
+  in silence on a freshly flashed display; when it does wait, it says so. A full setup on an 8" passed,
+  all 18 steps, with Casting Helper running at the end.
 - **Downloads can fall back to mirrors** when a host can't be reached; the pinned checksum still proves the
   file. No mirrors are listed yet.
 

@@ -116,7 +116,12 @@ class BootFixStep(Step):
 
     def done(self, ctx) -> bool:
         listing = shell(ctx, "ls", *[remote for _, remote, _, _ in FILES], check=False)
-        return all(remote in listing for _, remote, _, _ in FILES) and verify(ctx, wait=90) == []   # just after a restart the helpers take a while
+        # ls names a missing file in its error too, so only a line that is exactly the path counts.
+        present = {line.strip() for line in listing.splitlines()}
+        if not all(remote in present for _, remote, _, _ in FILES):
+            return False
+        with ctx.ui.busy("Checking the light sensor and volume button fixes, please wait (up to 90 seconds)"):
+            return verify(ctx, wait=90) == []   # just after a restart the helpers take a while
 
     def run(self, ctx) -> None:
         ensure_root_rw(ctx)

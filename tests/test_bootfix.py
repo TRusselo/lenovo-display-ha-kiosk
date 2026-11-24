@@ -177,16 +177,39 @@ def test_buttons_reminder_says_how_to_go_on_without_the_check(tmp_path, monkeypa
 def test_rerun_after_a_failed_press_test_skips_the_step(tmp_path):
     # Why the timeout can't just stop: done() only checks files and services.
     runner = healthy_runner()
-    runner.responses[("-s", "S1", "shell", "ls")] = Result(0, " ".join(r for _, r, _, _ in bootfix.FILES))
+    runner.responses[("-s", "S1", "shell", "ls")] = Result(0, "\n".join(r for _, r, _, _ in bootfix.FILES))
     assert bootfix.BootFixStep().done(make_ctx(tmp_path, runner))
 
 
 def test_done_gives_the_helpers_time_to_start_after_a_restart(tmp_path, monkeypatch):
     # The fixed-address step restarts the display just before; with no wait the helpers weren't up yet, and
     # the step ran again, restart and button presses included (e2e, 2026-11-24).
-    listing = " ".join(remote for _, remote, _, _ in bootfix.FILES)
+    listing = "\n".join(remote for _, remote, _, _ in bootfix.FILES)
     runner = FakeRunner({("-s", "S1", "shell", "ls"): Result(0, listing)})
     waits = []
     monkeypatch.setattr(bootfix, "verify", lambda ctx, wait=90: waits.append(wait) or [])
     assert bootfix.BootFixStep().done(make_ctx(tmp_path, runner))
     assert waits and waits[0] >= 60
+
+
+def test_done_sees_missing_files_in_ls_errors_and_doesnt_wait(tmp_path, monkeypatch):
+    # ls names each missing file in its error ("ls: /x: No such file or directory"), so a name in the
+    # output isn't proof it's there. On a freshly flashed display done() then waited 90 s in silence for
+    # helpers that weren't installed yet (e2e, 2026-11-23).
+    first = bootfix.FILES[0][1]
+    listing = "\n".join([f"ls: {first}: No such file or directory"]
+                        + [remote for _, remote, _, _ in bootfix.FILES[1:]])
+    runner = FakeRunner({("-s", "S1", "shell", "ls"): Result(1, listing)})
+    waits = []
+    monkeypatch.setattr(bootfix, "verify", lambda ctx, wait=90: waits.append(wait) or [])
+    assert not bootfix.BootFixStep().done(make_ctx(tmp_path, runner))
+    assert waits == []
+
+
+def test_the_wait_in_done_says_so_on_screen(tmp_path, monkeypatch):
+    # Up to 90 s with nothing on screen looked hung (e2e, 2026-11-23).
+    runner = FakeRunner({("-s", "S1", "shell", "ls"): Result(0, "\n".join(r for _, r, _, _ in bootfix.FILES))})
+    monkeypatch.setattr(bootfix, "verify", lambda ctx, wait=90: [])
+    ctx = make_ctx(tmp_path, runner)
+    bootfix.BootFixStep().done(ctx)
+    assert any(l.startswith("[busy]") and "please wait" in l for l in ctx.ui.lines)
