@@ -398,8 +398,14 @@ path mirodawa used to get a dashboard on the 8". Risks to respect:
 - **Boots** into Android 8.1.0 `userdebug`, fingerprint
   `Things/iot_msm8x53_som/msm8x53_som:8.1.0/OIM6.190107.017/5307861:userdebug/dev-keys`.
   `adb root` works. `ro.product.cpu.abi=armeabi-v7a`.
-- **Audio HW present:** ALSA card `msm8953-openq624-snd-card`; speaker amp is WSA881x
-  (`wsa881x-i2c-codec`), the mics are two digital mics on the codec's DMIC1/DMIC2 inputs
+- **Audio HW present:** ALSA card `msm8953-openq624-snd-card`. The speaker plays through a TI TAS5825M
+  amp with its own DSP, on I2C bus `I2C1` at 0x49 (corrected 2026-11-23; a `wsa881x-i2c-codec` is listed too,
+  but Lenovo tunes the TAS). Lenovo's Things app (`sparrow.oem`, class `AmpSetupValues`) loads ~1,500
+  registers into it once at boot, about 3 s after it starts playing silence: a +9 dB bass peak at 79 Hz over
+  high-pass filters, and a 3-band compressor (expander, compressor and limiter per band; layout as in TI's
+  SLAA786A). An older app version has a different tuning (about +7 dB, 80-120 Hz) with the same layout.
+  `bootfix` installs `ks-amp-tune`, which lowers the peak to +3 dB and flattens the expander and compressor;
+  see `lhk/amp.py`. Only the `peripheralman` domain may open `/dev/i2c-1`, hence its file label. The mics are two digital mics on the codec's DMIC1/DMIC2 inputs
   (corrected 2026-11-23; the PMIC analog inputs aren't used). Output device `AUDIO_DEVICE_OUT_SPEAKER` live. End-to-end
   mic/speaker test still pending (no tinycap/tinyplay on the build).
 - **Screen:** after AVB unlock + debug flash the Google Assistant launcher

@@ -20,6 +20,17 @@ service ks_volume_keys /system/bin/ks-volume-keys.sh
     group root log input
     disabled
 
+# Speaker tuning: once Lenovo's app has loaded the amp, lower its bass boost and
+# flatten its compressor (see lhk/amp.py). The file is labelled peripheralman_exec,
+# so init starts it in the domain that may open the amp's I2C bus:
+#   chcon u:object_r:peripheralman_exec:s0 /system/bin/ks-amp-tune
+service ks_amp_tune /system/bin/ks-amp-tune
+    user root
+    group root
+    disabled
+    oneshot
+
 on property:sys.boot_completed=1
     start ks_boot_fix
     start ks_volume_keys
+    start ks_amp_tune

@@ -1,9 +1,10 @@
-"""Boot fixes: light sensor after boot, and the hardware volume buttons.
+"""Boot fixes: light sensor after boot, the hardware volume buttons, and the speaker tuning.
 
 Installed as a separate init file in /system/etc/init, which init loads on
 its own. /init.rc is never touched: editing it soft-bricked a display. The
 two scripts are labelled dumpstate_exec, so init starts them in the
-dumpstate domain (init may not switch to su).
+dumpstate domain (init may not switch to su). ks-amp-tune (see lhk/amp.py)
+is labelled peripheralman_exec: only that domain may open the amp's I2C bus.
 """
 from __future__ import annotations
 
@@ -16,11 +17,14 @@ from lhk.steps import Step
 from lhk.system import adb, ensure_root_rw, reboot_and_wait, shell, wait_booted
 
 LABEL = "u:object_r:dumpstate_exec:s0"
+AMP_LABEL = "u:object_r:peripheralman_exec:s0"
+AMP_TOOL = "/system/bin/ks-amp-tune"
 # (asset, path on the display, mode, label or None for restorecon)
 FILES = [
     ("assets/bootfix/ks-boot-fix.sh", "/system/bin/ks-boot-fix.sh", "755", LABEL),
     ("assets/bootfix/ks-volume-keys.sh", "/system/bin/ks-volume-keys.sh", "755", LABEL),
     ("ks-volkeys.jar", "/system/framework/ks-volkeys.jar", "644", None),
+    ("ks-amp-tune", AMP_TOOL, "755", AMP_LABEL),
     ("assets/bootfix/ks-boot-fix.rc", "/system/etc/init/ks-boot-fix.rc", "644", None),
 ]
 
@@ -37,6 +41,20 @@ def _jar(ctx) -> Path:
     raise BootFixFailed("ks-volkeys.jar is missing. It comes with each release; when running from "
                         "source, build it (" + doc("docs/PYTHON.md") + ") or download it from the "
                         "release page.")
+
+
+def _amp_tool(ctx) -> Path:
+    for p in (ctx.state.get("amp_tool"), _repo_file("ks-amp-tune"),
+              _repo_file("assets/bootfix/amp/build/ks-amp-tune")):
+        if p and Path(p).exists():
+            return Path(p)
+    raise BootFixFailed("ks-amp-tune is missing. It comes with each release; when running from "
+                        "source, build it (" + doc("docs/PYTHON.md") + ") or download it from the "
+                        "release page.")
+
+
+def _amp_state(ctx) -> str:
+    return shell(ctx, "su", "0", AMP_TOOL, "check", check=False).strip()   # works before adb is root
 
 
 def _volume_problems(ctx) -> list[str]:
@@ -60,6 +78,12 @@ def verify(ctx, wait: float = 90) -> list[str]:
             problems.append("Kiosk Satellite isn't reading the light sensor")
             break
         time.sleep(5)
+    # Lenovo's app loads the amp a while after boot; ks-amp-tune writes only after that.
+    while (amp := _amp_state(ctx)) != "tuned":
+        if time.monotonic() >= end or amp not in ("not-loaded", "stock"):
+            problems.append(f"the speaker tuning wasn't applied (ks-amp-tune says: {amp or 'nothing'})")
+            break
+        time.sleep(3)
     home = shell(ctx, "cmd", "package", "resolve-activity", "--brief", "-c", "android.intent.category.HOME",
                  "-a", "android.intent.action.MAIN", check=False).strip().splitlines()
     if not home or not home[-1].startswith("me.jxl.kiosk_satellite/"):
@@ -112,7 +136,7 @@ def _lf_copy(ctx, src: Path) -> Path:
 
 class BootFixStep(Step):
     name = "bootfix"
-    title = "Install the light sensor and volume button fixes"
+    title = "Install the light sensor, volume button and speaker fixes"
 
     def done(self, ctx) -> bool:
         listing = shell(ctx, "ls", *[remote for _, remote, _, _ in FILES], check=False)
@@ -120,7 +144,7 @@ class BootFixStep(Step):
         present = {line.strip() for line in listing.splitlines()}
         if not all(remote in present for _, remote, _, _ in FILES):
             return False
-        with ctx.ui.busy("Checking the light sensor and volume button fixes, please wait (up to 90 seconds)"):
+        with ctx.ui.busy("Checking the light sensor, volume button and speaker fixes, please wait (up to 90 seconds)"):
             return verify(ctx, wait=90) == []   # just after a restart the helpers take a while
 
     def run(self, ctx) -> None:
@@ -128,7 +152,12 @@ class BootFixStep(Step):
         for asset, remote, mode, label in FILES:
             if remote == "/init.rc":
                 raise BootFixFailed("refusing to write /init.rc")
-            local = _jar(ctx) if asset == "ks-volkeys.jar" else _lf_copy(ctx, _repo_file(asset))
+            if asset == "ks-volkeys.jar":
+                local = _jar(ctx)
+            elif asset == "ks-amp-tune":
+                local = _amp_tool(ctx)
+            else:
+                local = _lf_copy(ctx, _repo_file(asset))
             adb(ctx, "push", str(local), remote)
             shell(ctx, "chmod", mode, remote)
             if label:

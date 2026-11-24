@@ -88,7 +88,10 @@ def test_bootfix_pushes_lf_even_from_a_crlf_copy(tmp_path, monkeypatch):
     jar.write_bytes(b"PK\r\n")
     runner = FakeRunner()
     ctx = Context(runner=runner, ui=FakeUI(), paths=Paths(tmp_path / "work"))
-    ctx.state.update(tools=Tools(adb=Path("adb"), fastboot=Path("fastboot")), serial="S1", volkeys_jar=jar)
+    tool = tmp_path / "ks-amp-tune"
+    tool.write_bytes(b"\x7fELF\r\n")
+    ctx.state.update(tools=Tools(adb=Path("adb"), fastboot=Path("fastboot")), serial="S1", volkeys_jar=jar,
+                     amp_tool=tool)
     bootfix.BootFixStep().run(ctx)
     pushed = {Path(c[5]).name: Path(c[4]) for c in runner.calls if c[3] == "push"}
     for name in ("ks-boot-fix.sh", "ks-volume-keys.sh", "ks-boot-fix.rc"):

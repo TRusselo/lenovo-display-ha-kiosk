@@ -1,7 +1,7 @@
 # PyInstaller spec: one-folder standalone build of lhk for the current OS.
 # Bundles our own files only. edl (GPL-3.0), firmware, unlock credentials and
 # Kiosk Satellite are downloaded at run time and never bundled.
-# Build: pyinstaller lhk.spec   (ks-volkeys.jar must be at the repo root first)
+# Build: pyinstaller lhk.spec   (ks-volkeys.jar and ks-amp-tune must be at the repo root first)
 import os
 
 from PyInstaller.utils.hooks import collect_dynamic_libs
@@ -16,6 +16,8 @@ datas = [
 ]
 if os.path.exists("ks-volkeys.jar"):
     datas.append(("ks-volkeys.jar", "."))
+if os.path.exists("ks-amp-tune"):
+    datas.append(("ks-amp-tune", "."))
 
 a = Analysis(
     ["lhk/__main__.py"],

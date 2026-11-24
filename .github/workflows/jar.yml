@@ -1,10 +1,12 @@
 name: volkeys-jar
 
 # Builds the volume button helper (assets/bootfix/volkeys/VolKeys.java) into
-# ks-volkeys.jar, so users need no Java or Android SDK. release.yml reuses it.
+# ks-volkeys.jar, and the speaker tuning tool (assets/bootfix/amp/ks-amp-tune.c)
+# into ks-amp-tune, so users need no Java, Android SDK or compiler. release.yml
+# reuses it.
 on:
   push:
-    paths: ["assets/bootfix/volkeys/**", ".github/workflows/jar.yml"]
+    paths: ["assets/bootfix/volkeys/**", "assets/bootfix/amp/**", ".github/workflows/jar.yml"]
   workflow_call:
   workflow_dispatch:
 
@@ -30,7 +32,17 @@ jobs:
           "$SDK/build-tools/35.0.0/d8" --min-api 26 --lib "$SDK/platforms/android-35/android.jar" \
             --output build/ks-volkeys.jar build/classes.jar
           unzip -l build/ks-volkeys.jar | grep classes.dex
+      - name: Build ks-amp-tune
+        working-directory: assets/bootfix/amp
+        run: |
+          sudo apt-get install -y -q lld >/dev/null
+          mkdir -p build
+          clang --target=armv7a-linux-gnueabi -mfloat-abi=soft -Os -ffreestanding -fno-stack-protector \
+            -nostdlib -static -fuse-ld=lld -o build/ks-amp-tune ks-amp-tune.c
+          file build/ks-amp-tune | grep "ARM, EABI5"
+      # One folder, so both land at the repo root when release.yml downloads them.
+      - run: mkdir out && cp assets/bootfix/volkeys/build/ks-volkeys.jar assets/bootfix/amp/build/ks-amp-tune out/
       - uses: actions/upload-artifact@v4
         with:
           name: ks-volkeys-jar
-          path: assets/bootfix/volkeys/build/ks-volkeys.jar
+          path: out/

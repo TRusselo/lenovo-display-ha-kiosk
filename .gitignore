@@ -9,4 +9,5 @@ __pycache__/
 *.egg-info/
 .superpowers/
 /ks-volkeys.jar
+/ks-amp-tune
 .private-words
