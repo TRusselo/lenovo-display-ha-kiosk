@@ -1,6 +1,6 @@
 """Turn a stock Lenovo Smart Display 8 into a degoogled Home Assistant kiosk."""
 
-__version__ = "0.2.10"
+__version__ = "0.2.11"
 
 # Where the docs live online. Change this one line if the repository moves.
 DOCS_URL = "https://github.com/TRusselo/lenovo-display-ha-kiosk/blob/main"

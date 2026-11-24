@@ -2,6 +2,14 @@
 
 What changed for people converting a display. Newest first.
 
+## 0.2.11 (2026-11-24)
+
+- **Running from source on Windows: the unlock no longer fails with "No unlock credentials were found".** The
+  unlock script's packages could load from the source folder's own `.venv`, where Windows Smart App Control
+  blocks them. They now always come from uv's own cache. Found and tested by a user (issue 5).
+- **Windows driver help:** if Windows finds no driver in Google's folder, the guide now says to pick **Android
+  Bootloader Interface** from the list. [Drivers](docs/drivers.md).
+
 ## 0.2.10 (2026-11-23)
 
 - **Lenovo's speaker sound is back.** 0.2.9's lower bass and flat compressor made the assistant's voice
