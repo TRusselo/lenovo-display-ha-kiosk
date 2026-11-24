@@ -2,7 +2,9 @@
 
 What changed for people converting a display. Newest first.
 
-## 0.2.6 (2026-11-23)
+## 0.2.7 (2026-11-23)
+
+0.2.6 was never released: its build stopped on two tests on Windows. Everything below is in 0.2.7.
 
 From the clock tool ([lenovo-clock-ha-kiosk](https://github.com/TRusselo/lenovo-clock-ha-kiosk)):
 
@@ -25,6 +27,9 @@ From the clock tool ([lenovo-clock-ha-kiosk](https://github.com/TRusselo/lenovo-
   boot-fix check no longer takes `ls`'s "No such file" errors for the files, which made it wait 90 seconds
   in silence on a freshly flashed display; when it does wait, it says so. A full setup on an 8" passed,
   all 18 steps, with Casting Helper running at the end.
+- **`lhk wifi` waits for the display** when it's started before the display is plugged in, instead of
+  stopping at once. Rejoining the network the display is already on waits for it to rejoin, and shows
+  the address it got. Used on a second 8" to give it a fixed address.
 - **Downloads can fall back to mirrors** when a host can't be reached; the pinned checksum still proves the
   file. No mirrors are listed yet.
 
