@@ -307,20 +307,7 @@ to the setup wizard.
 
 **Check:** with the app open, `adb shell dumpsys input | grep -c nav_input_consumer` prints `0`.
 
-## 16. `casting-helper`: Casting Helper (optional)
-
-Casting Helper is a Kiosk Satellite plugin: cast video and music to the
-display from phones and computers. Setup downloads the newest release with the other tools, from
-`https://gitlab.tiered.top/api/v4/projects/3/packages/generic/casting-helper/latest/casting-helper.zip`.
-Unlike the other downloads it isn't pinned to a checksum, because that address always serves the newest
-release; Kiosk Satellite checks the package itself. If the download fails, the step is skipped without a
-word, and setup goes on.
-
-It's installed through Kiosk Satellite's remote admin, signed in as for the settings: `listPlugins`, then
-`setPluginsEnabled`, `installPlugin` (trusted) and `enablePlugin`. By hand: in Kiosk Satellite, Plugin
-Manager, Install from ZIP.
-
-## 17. `bootfix`: light sensor and volume buttons
+## 16. `bootfix`: light sensor and volume buttons
 
 - **Volume buttons:** these are GPIOs that only a Google component used to read. The fix is a small helper that
   turns presses into volume keys.
@@ -347,6 +334,20 @@ adb reboot
 - `adb shell getprop init.svc.ks_volume_keys` prints `running`
 - `adb shell dumpsys sensorservice | grep kiosk_satellite.LightSensor` finds a line
 - pressing volume up changes the volume
+
+## 17. `casting-helper`: Casting Helper (optional)
+
+Casting Helper is a Kiosk Satellite plugin: cast video and music to the
+display from phones and computers. Setup downloads the newest release with the other tools, from
+`https://gitlab.tiered.top/api/v4/projects/3/packages/generic/casting-helper/latest/casting-helper.zip`.
+Unlike the other downloads it isn't pinned to a checksum, because that address always serves the newest
+release; Kiosk Satellite checks the package itself. If the download fails, the step is skipped without a
+word, and setup goes on.
+
+It comes after the boot fixes, so no restart follows it: Kiosk Satellite switches a plugin off after
+two startups cut short in a row. It's installed through Kiosk Satellite's remote admin, signed in as for the settings: `listPlugins`, then
+`setPluginsEnabled`, `installPlugin` (trusted) and `enablePlugin`. By hand: in Kiosk Satellite, Plugin
+Manager, Install from ZIP.
 
 ## 18. `verify`: final check
 

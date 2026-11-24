@@ -346,3 +346,18 @@ def test_wizard_skips_the_link_without_an_address(tmp_path, monkeypatch):
     ctx = make_ctx(tmp_path, runner, http=FakeAdmin(runner))
     kiosk.SettingsStep().run(ctx)
     assert not any(":2324" in l for l in ctx.ui.lines)
+
+
+def test_settings_done_gets_root_first_so_a_restart_doesnt_hide_the_settings(tmp_path, monkeypatch):
+    # After a restart (the fixed-address step) adb has no root, and the settings file reads as empty:
+    # the step looked unfinished and asked for Kiosk Satellite's setup again (e2e, 2026-11-24).
+    runner = FakeRunner({("-s", "S1", "shell", "cat", PREFS): Result(0, "")})
+    rooted = []
+
+    def root(ctx):
+        rooted.append(True)
+        runner.responses[("-s", "S1", "shell", "cat", PREFS)] = Result(
+            0, prefs_xml(nav="false", gain="24", mode="voice_communication", home="true"))
+    monkeypatch.setattr(kiosk, "ensure_root_rw", root)
+    assert kiosk.SettingsStep().done(make_ctx(tmp_path, runner))
+    assert rooted

@@ -233,6 +233,7 @@ class SettingsStep(Step):
     title = "Apply the recommended Kiosk Satellite settings"
 
     def done(self, ctx) -> bool:
+        ensure_root_rw(ctx)        # after a restart adb has no root, and the file would read as empty
         xml = _prefs(ctx)
         return _signed_in(xml) and _current(xml) == SETTINGS
 

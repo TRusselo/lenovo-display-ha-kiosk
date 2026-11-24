@@ -39,6 +39,8 @@ _PLAIN = {"ok": "[x]", "todo": "[ ]", "fail": "[!]", "full": "#", "empty": "-", 
 _BOLD, _PURPLE, _TITLE, _YELLOW, _RED, _CYAN, _NOW, _DIM, _RESET = (
     "\x1b[1m", "\x1b[38;5;141m", "\x1b[1;38;5;141m", "\x1b[1;33m", "\x1b[31m", "\x1b[38;5;80m",
     "\x1b[1;38;5;80m", "\x1b[38;5;248m", "\x1b[0m")    # "dim" is a light grey: the terminal's own dim is unreadable on black
+_LINK = "\x1b[4;38;5;80m"      # links and addresses: the screen's cyan, underlined, so they read as clickable
+_URL = re.compile(r"https?://[^\s)]+")
 CLEAR = "\x1b[H\x1b[2J\x1b[3J"     # the screen and the scrollback: no banner or old screens above
 TITLE = "Lenovo Smart Display 8 {to} Home Assistant"
 DEVICE = "Lenovo Smart Display 8"
@@ -106,9 +108,11 @@ class UI:
         return "\n".join(out)
 
     def _buttons(self, text: str, colour: str = "") -> str:
-        """Buttons and keys to press in bold, then back to the surrounding colour."""
+        """Buttons and keys to press in bold, links and addresses in underlined cyan, then back to
+        the surrounding colour."""
         if not self._colour():
             return text
+        text = _URL.sub(lambda m: f"{_LINK}{m.group(0)}{_RESET}{colour}", text)
         return _BUTTONS.sub(lambda m: f"{_BOLD}{m.group(0)}{_RESET}{colour}", text)
 
     def redraw(self) -> None:
@@ -242,7 +246,8 @@ class UI:
         if self._live():
             self.stdout.write(f"\n  {self._paint(_TITLE, title)}\n")
             for line in lines:
-                self.stdout.write(self._wrap(line, "    ").replace("    ", f"  {self._paint(_PURPLE, self._symbols()['todo'])} ", 1) + "\n")
+                line = self._wrap(line, "    ").replace("    ", f"  {self._paint(_PURPLE, self._symbols()['todo'])} ", 1)
+                self.stdout.write(self._buttons(line) + "\n")
             self.stdout.flush()
             return
         self.stdout.write(f"\n{self._paint(_TITLE, title)}\n")

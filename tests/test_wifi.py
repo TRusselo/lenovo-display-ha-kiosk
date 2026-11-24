@@ -80,7 +80,9 @@ def test_the_fixed_address_is_written_with_wifi_off_then_the_display_restarts_on
     on_again = len(shells) - 1 - shells[::-1].index(["svc", "wifi", "enable"])
     assert off < write < on_again
     cmd = " ".join(shells[write])
-    assert "chown 1000:1000" in cmd and "chmod 600" in cmd and "restorecon" in cmd
+    assert "chown 1000:1000" in cmd and "chmod 600" in cmd and "restorecon" in cmd and cmd.endswith("&& sync")
+    # The restart is its own adb reboot, never inside that command (the clock's adb shell hung on one).
+    assert "reboot" not in cmd
     assert ["rm", "-f", wifi.REMOTE] in shells
     assert d.reboots == 1
     assert any(l.startswith("[ok]") and "10.1.1.40" in l for l in c.ui.lines)

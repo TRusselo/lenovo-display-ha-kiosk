@@ -12,11 +12,16 @@ From the clock tool ([lenovo-clock-ha-kiosk](https://github.com/TRusselo/lenovo-
 - **A fixed address, if you want one.** Setup asks right after Wi-Fi (press Enter to keep it automatic), and
   `lhk wifi` sets or undoes it later. Only the address part of that saved network changes, with root, and
   the display restarts on it; the tool says it's set only once the display is back at that address.
-  Untested on a display so far.
+  Tested on an 8": set in setup, then back to automatic with `lhk wifi`.
 - **Casting Helper**, a Kiosk Satellite plugin: cast video and music to the display from phones and
   computers. Setup downloads the newest release and adds it after Kiosk Satellite's setup pages. If the
   download fails, it's skipped without a word; if the install fails, setup says so in a line and goes on.
-  Tried on a clock; untested on a display so far.
+  It's added after the boot fixes, so no restart follows it: Kiosk Satellite switches a plugin off after two
+  startups cut short in a row. Running on an 8", and after a restart.
+- **Links stand out:** addresses and links are underlined cyan on a terminal, in "What's next" too, so it's
+  clear they can be clicked. That includes Kiosk Satellite's browser setup address.
+- **Fixes from the 8" test:** after a restart the Kiosk Satellite settings and boot-fix steps could look
+  unfinished and run again (adb had no root yet, and the boot fixes weren't given time to start).
 - **Downloads can fall back to mirrors** when a host can't be reached; the pinned checksum still proves the
   file. No mirrors are listed yet.
 

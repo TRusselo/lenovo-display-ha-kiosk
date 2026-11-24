@@ -118,5 +118,5 @@ def setup_steps() -> list[Step]:
         system.RootStep(), tzdata.TzdataStep(), system.KeyboardStep(),
         system.OpenThingsSettingsStep(), wifi.FixedAddressStep(),
         system.DegoogleStep(), system.MixerStep(), kiosk.InstallStep(), kiosk.GrantsStep(),
-        kiosk.SettingsStep(), plugin.PluginStep(), bootfix.BootFixStep(), VerifyStep(),
+        kiosk.SettingsStep(), bootfix.BootFixStep(), plugin.PluginStep(), VerifyStep(),
     ]

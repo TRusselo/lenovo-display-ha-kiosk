@@ -211,3 +211,31 @@ def test_old_windows_console_gets_plain_symbols(monkeypatch):
     out = io.StringIO()
     UI(stdout=out).ok("Unlock")
     assert "✓ Unlock" in out.getvalue()
+
+
+# Links and addresses stand out (from the clock tool): cyan and underlined, so people see they can click them.
+LINK = "\x1b[4;38;5:80m".replace(":", ";")
+
+
+def test_links_in_whats_next_are_coloured(monkeypatch):
+    monkeypatch.delenv("NO_COLOR", raising=False)
+    out = _Tty()
+    UI(stdout=out).section("What's next", ["Change Kiosk Satellite's settings from a browser: http://10.1.1.40:2324",
+                                           "Fit more on the screen: docs/SIZE.md (in the download, or "
+                                           "https://github.com/TRusselo/lenovo-display-ha-kiosk/blob/main/docs/SIZE.md)"])
+    text = out.getvalue()
+    assert f"{LINK}http://10.1.1.40:2324\x1b[0m" in text
+    assert f"{LINK}https://github.com/TRusselo/lenovo-display-ha-kiosk/blob/main/docs/SIZE.md\x1b[0m" in text
+
+
+def test_the_browser_address_for_kiosk_satellites_setup_is_coloured(monkeypatch):
+    monkeypatch.delenv("NO_COLOR", raising=False)
+    out = _Tty()
+    UI(stdout=out).say("Easier in a browser, for pasting your address and token:\n  http://10.1.1.40:2324")
+    assert f"{LINK}http://10.1.1.40:2324\x1b[0m" in out.getvalue()
+
+
+def test_links_stay_plain_without_a_terminal():
+    out = io.StringIO()
+    UI(stdout=out).section("What's next", ["Settings: http://10.1.1.40:2324"])
+    assert "\x1b" not in out.getvalue() and "http://10.1.1.40:2324" in out.getvalue()

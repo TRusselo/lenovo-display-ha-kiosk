@@ -1,5 +1,5 @@
 {
-  "_comment": "Everything the tool downloads at run time, except Casting Helper (always its newest release, checked by Kiosk Satellite: devices/amber/README.md step 16). Nothing here is hosted by this repo. A file whose SHA-256 doesn't match is deleted and the run stops.",
+  "_comment": "Everything the tool downloads at run time, except Casting Helper (always its newest release, checked by Kiosk Satellite: devices/amber/README.md step 17). Nothing here is hosted by this repo. A file whose SHA-256 doesn't match is deleted and the run stops.",
   "entries": [
     {
       "id": "platform-tools-windows",

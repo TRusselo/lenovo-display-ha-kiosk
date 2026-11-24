@@ -92,7 +92,7 @@ def set_address(ctx, static) -> None:
             local.write_bytes(data)
             adb(ctx, "push", str(local), REMOTE, timeout=60)
         r = adb(ctx, "shell", f"cp {REMOTE} {STORE}",
-                f"&& chown 1000:1000 {STORE} && chmod 600 {STORE} && restorecon {STORE}", check=False)
+                f"&& chown 1000:1000 {STORE} && chmod 600 {STORE} && restorecon {STORE} && sync", check=False)
         shell(ctx, "rm", "-f", REMOTE, check=False)
         if r.code != 0:
             raise SetupFailed("The display didn't take the new address: its saved networks weren't changed.")

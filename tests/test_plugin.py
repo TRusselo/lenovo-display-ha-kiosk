@@ -158,8 +158,11 @@ def test_an_install_that_fails_says_so_in_a_line_and_setup_goes_on(tmp_path, htt
     assert len(said) == 1 and "Install from ZIP" in said[0] and str(plugin.cached(c)) in said[0]
 
 
-def test_the_step_comes_after_kiosk_satellite_is_set_up_and_never_fails_the_final_check():
+def test_no_restart_follows_the_install_in_setup():
+    # Kiosk Satellite switches a plugin off after two startups cut short in a row: on the 8" the boot-fix
+    # restarts right after the install did that (e2e, 2026-11-24). So it goes after them, last but the check.
     from lhk import plan
     names = [s.name for s in plan.setup_steps()]
-    assert names.index("casting-helper") == names.index("kiosk-settings") + 1
+    assert names.index("casting-helper") > names.index("kiosk-settings")
+    assert names.index("casting-helper") == names.index("bootfix") + 1
     assert names[-1] == "verify"

@@ -11,7 +11,7 @@ def test_step_order_matches_design():
     assert [s.name for s in plan.setup_steps()] == [
         "prerequisites", "downloads", "backup", "unlock", "flash", "root", "tzdata", "keyboard",
         "things-settings", "fixed-address", "degoogle", "mixer", "kiosk-install", "kiosk-grants",
-        "kiosk-settings", "casting-helper", "bootfix", "verify",
+        "kiosk-settings", "bootfix", "casting-helper", "verify",
     ]
 
 

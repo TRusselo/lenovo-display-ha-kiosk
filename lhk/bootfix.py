@@ -97,7 +97,7 @@ def check_buttons(ctx, wait: float = 60) -> None:
             ctx.ui.redraw()
             ctx.ui.say(f"Still waiting for {name}. If the button doesn't change the volume, press Ctrl-C "
                        "and run the same command again: setup goes on without this check, and "
-                       + doc("devices/amber/README.md", "step 17") + " says what to look at.")
+                       + doc("devices/amber/README.md", "step 16") + " says what to look at.")
     ctx.ui.say("Volume buttons work.")
 
 
@@ -116,7 +116,7 @@ class BootFixStep(Step):
 
     def done(self, ctx) -> bool:
         listing = shell(ctx, "ls", *[remote for _, remote, _, _ in FILES], check=False)
-        return all(remote in listing for _, remote, _, _ in FILES) and verify(ctx, wait=0) == []
+        return all(remote in listing for _, remote, _, _ in FILES) and verify(ctx, wait=90) == []   # just after a restart the helpers take a while
 
     def run(self, ctx) -> None:
         ensure_root_rw(ctx)

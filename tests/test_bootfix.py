@@ -170,7 +170,7 @@ def test_buttons_reminder_says_how_to_go_on_without_the_check(tmp_path, monkeypa
     ctx = make_ctx(tmp_path, _volume_runner([40, 40, 40, 40, 40, 45, 45, 40]))
     bootfix.check_buttons(ctx)
     reminder = next(l for l in ctx.ui.lines if "Ctrl-C" in l)
-    assert "same command" in reminder and "step 17" in reminder
+    assert "same command" in reminder and "step 16" in reminder
     assert "[redraw]" in ctx.ui.lines
 
 
@@ -179,3 +179,14 @@ def test_rerun_after_a_failed_press_test_skips_the_step(tmp_path):
     runner = healthy_runner()
     runner.responses[("-s", "S1", "shell", "ls")] = Result(0, " ".join(r for _, r, _, _ in bootfix.FILES))
     assert bootfix.BootFixStep().done(make_ctx(tmp_path, runner))
+
+
+def test_done_gives_the_helpers_time_to_start_after_a_restart(tmp_path, monkeypatch):
+    # The fixed-address step restarts the display just before; with no wait the helpers weren't up yet, and
+    # the step ran again, restart and button presses included (e2e, 2026-11-24).
+    listing = " ".join(remote for _, remote, _, _ in bootfix.FILES)
+    runner = FakeRunner({("-s", "S1", "shell", "ls"): Result(0, listing)})
+    waits = []
+    monkeypatch.setattr(bootfix, "verify", lambda ctx, wait=90: waits.append(wait) or [])
+    assert bootfix.BootFixStep().done(make_ctx(tmp_path, runner))
+    assert waits and waits[0] >= 60
