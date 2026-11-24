@@ -30,7 +30,19 @@ service ks_amp_tune /system/bin/ks-amp-tune
     disabled
     oneshot
 
+# A second run once the light-sensor fix and the first run are both done (about a
+# minute after boot): on one boot in seven something sent the first run SIGINT.
+# It finds the amp tuned and exits, or applies the tuning. The two never overlap.
+service ks_amp_tune_again /system/bin/ks-amp-tune
+    user root
+    group root
+    disabled
+    oneshot
+
 on property:sys.boot_completed=1
     start ks_boot_fix
     start ks_volume_keys
     start ks_amp_tune
+
+on property:init.svc.ks_boot_fix=stopped && property:init.svc.ks_amp_tune=stopped
+    start ks_amp_tune_again

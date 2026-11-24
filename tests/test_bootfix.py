@@ -274,3 +274,14 @@ def test_the_tuning_check_works_before_adb_is_root(tmp_path):
     runner = healthy_runner()
     bootfix.verify(make_ctx(tmp_path, runner))
     assert ["su", "0", bootfix.AMP_TOOL, "check"] in [c[4:] for c in runner.calls if c[3] == "shell"]
+
+
+def test_init_runs_the_amp_tool_again_once_the_first_run_has_stopped():
+    # One boot in seven, something sent the first run SIGINT a second after it started (8", 2026-11-23).
+    # A second run, after the light-sensor fix is done, catches that; it can never overlap the first.
+    rc = (Path(__file__).resolve().parent.parent / "assets/bootfix/ks-boot-fix.rc").read_text()
+    block = rc[rc.index("service ks_amp_tune_again"):].split("\n\n")[0]
+    assert block.splitlines()[0] == "service ks_amp_tune_again /system/bin/ks-amp-tune"
+    assert "oneshot" in block and "disabled" in block
+    trigger = "on property:init.svc.ks_boot_fix=stopped && property:init.svc.ks_amp_tune=stopped"
+    assert trigger + "\n    start ks_amp_tune_again" in rc

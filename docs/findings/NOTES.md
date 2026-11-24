@@ -405,7 +405,10 @@ path mirodawa used to get a dashboard on the 8". Risks to respect:
   high-pass filters, and a 3-band compressor (expander, compressor and limiter per band; layout as in TI's
   SLAA786A). An older app version has a different tuning (about +7 dB, 80-120 Hz) with the same layout.
   `bootfix` installs `ks-amp-tune`, which lowers the peak to +3 dB and flattens the expander and compressor;
-  see `lhk/amp.py`. Only the `peripheralman` domain may open `/dev/i2c-1`, hence its file label. The mics are two digital mics on the codec's DMIC1/DMIC2 inputs
+  see `lhk/amp.py`. Only the `peripheralman` domain may open `/dev/i2c-1`, hence its file label. On about one boot in three the
+  first run is killed by SIGINT about a second after init starts it, even with SIGINT ignored (so
+  probably before its first instruction; sender not found with signal tracing), so `ks-boot-fix.rc`
+  runs it a second time once the light-sensor fix and the first run have stopped. The mics are two digital mics on the codec's DMIC1/DMIC2 inputs
   (corrected 2026-11-23; the PMIC analog inputs aren't used). Output device `AUDIO_DEVICE_OUT_SPEAKER` live. End-to-end
   mic/speaker test still pending (no tinycap/tinyplay on the build).
 - **Screen:** after AVB unlock + debug flash the Google Assistant launcher
