@@ -2,6 +2,16 @@
 
 What changed for people converting a display. Newest first.
 
+## 0.2.9 (2026-11-23)
+
+- **Better speaker sound.** Lenovo's app tunes the speaker amp at every boot with +9 dB of bass and a
+  compressor that pushes quiet sounds down and clamps loud ones. Loud bass rattled the speaker, thunder lost
+  its bass, and rain faded out. The boot fixes now lower the bass to +3 dB and make the compressor flat. The
+  limiter at the top stays, to protect the speaker. Want more bass? Use Kiosk Satellite's equalizer. Tested
+  on the 8" across a restart: every other value Lenovo loads is unchanged.
+- **Already converted?** Run `lhk setup` again: the boot-fix step installs the change and restarts the
+  display.
+
 ## 0.2.8 (2026-11-23)
 
 - **The microphone gain now works.** The `mixer` step changed a file the display never reads, so the mics
